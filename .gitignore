@@ -1,4 +1,4 @@
 .idea/*
 cert-validator
 example/log.json
-
+example/output-sample.parquet
