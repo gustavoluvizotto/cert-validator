@@ -8,12 +8,26 @@ import (
 )
 
 type ValidationResult struct {
-	Id      int32  `parquet:"name=id, type=INT32"`
-	IsValid bool   `parquet:"name=is_valid, type=BOOLEAN"`
-	Error   string `parquet:"name=error, type=BYTE_ARRAY, convertedtype=UTF8"`
+	Id        int32  `parquet:"name=id, type=INT32"`
+	IsValid   bool   `parquet:"name=is_valid, type=BOOLEAN"`
+	ErrorData string `parquet:"name=error, type=BYTE_ARRAY, convertedtype=UTF8"`
 }
 
-func StoreResult(result []ValidationResult, fileName string) {
+func ConsumeResultChannel(resultChan chan ValidationResult, nrChains int, fileName string) {
+	if resultChan == nil {
+		log.Fatal().Msg("Result channel is nil")
+		return
+	}
+
+	var validChains []ValidationResult
+	for i := 0; i < nrChains; i++ {
+		validChains = append(validChains, <-resultChan)
+	}
+
+	storeResult(validChains, fileName)
+}
+
+func storeResult(result []ValidationResult, fileName string) {
 	// write []ValidationResult to parquet file
 	fw, err := local.NewLocalFileWriter(fileName)
 	if err != nil {

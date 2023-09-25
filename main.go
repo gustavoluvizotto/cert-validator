@@ -25,6 +25,12 @@ func main() {
 		"",
 		"The input file in CSV format")
 
+	var output string
+	flag.StringVar(&output,
+		"output",
+		"",
+		"The output file in Parquet format (provide extension)")
+
 	var logFile string
 	flag.StringVar(&logFile,
 		"log-file",
@@ -65,6 +71,11 @@ func main() {
 		zerolog.SetGlobalLevel(zerolog.WarnLevel)
 	}
 
+	if output == "" {
+		log.Fatal().Msg("Output file is required")
+		return
+	}
+
 	if logFile != "" {
 		fh, err := os.Create(logFile)
 		if err != nil {
@@ -97,21 +108,20 @@ func main() {
 		certChains = input.LoadParquet(inputParquet)
 	}
 
-	validChains := validateChain(certChains, rootStores, rootCAFile)
-
-	result.StoreResult(validChains, "example/output-sample.parquet")
+	validChainChan := validateChain(certChains, rootStores, rootCAFile)
+	nrChains := len(certChains)
+	result.ConsumeResultChannel(*validChainChan, nrChains, output)
 }
 
-func validateChain(certChains []input.CertChain, rootStores []string, rootCAFile string) []result.ValidationResult {
-	var validChains []result.ValidationResult
-	for _, v := range certChains {
-		log.Debug().Int32("id", v.Id).Msg("Loaded certificate chain")
-		isValid, err := validator.ValidateChainPem(v.Chain, rootStores, rootCAFile)
-		var errStr string
-		if err != nil {
-			errStr = err.Error()
-		}
-		validChains = append(validChains, result.ValidationResult{Id: v.Id, Error: errStr, IsValid: isValid})
+func validateChain(certChains []input.CertChain, rootStores []string, rootCAFile string) *chan result.ValidationResult {
+	rootCAs, err := validator.GetRootCAs(rootStores, rootCAFile)
+	if err != nil {
+		log.Fatal().Msg(err.Error())
+		return nil
 	}
-	return validChains
+	validChainChan := make(chan result.ValidationResult)
+	for _, certChain := range certChains {
+		go validator.ValidateChainPem(certChain, rootCAs, validChainChan)
+	}
+	return &validChainChan
 }

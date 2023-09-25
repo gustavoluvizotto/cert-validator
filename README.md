@@ -1,6 +1,11 @@
 # cert-validator
 X.509 certificate chain validator.
 
+## Requirements
+* Go environment
+* Internet connection (to download the CCADB root CA certificates). 
+This can be avoided by **not** specifying the ```--tls-root``` or ```--smime-root``` flags.
+
 ## Build
 Clone this repository and run the following command in the toplevel directory:
 ```shell
@@ -48,6 +53,7 @@ The input in csv format has the following columns:
 id,chain
 ```
 Where ```chain``` is a comma-separated list of PEM-encoded X.509 certificates within double quotes.
+The ```id``` parameters is an integer that uniquely identifies the chain.
 
 The output is in parquet format and has the following schema:
 ```

@@ -4,30 +4,30 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"github.com/gustavoluvizotto/cert-validator/input"
+	"github.com/gustavoluvizotto/cert-validator/result"
 	"github.com/rs/zerolog/log"
 	"os"
 	"strconv"
 	"time"
 )
 
-func ValidateChainPem(certChainStr []string, rootStores []string, rootCAFile string) (bool, error) {
-	rootCAs, err := getRootCAs(rootStores, rootCAFile)
-	if err != nil {
-		log.Fatal().Msg(err.Error())
-		return false, err
-	}
+func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultChan chan result.ValidationResult) {
+	log.Debug().Int32("id", certChain.Id).Msg("Validating certificate chain")
 
 	// Iterate over the certificates in the chain, permuting the leaf certificate and the intermediate certificates,
 	// and verify the chain against the root CAs
+	valResult := result.ValidationResult{Id: certChain.Id, IsValid: false}
 	var leaf *x509.Certificate
+	var err error
 	isValid := false
-	for i, certStr := range certChainStr {
+	for i, certStr := range certChain.Chain {
 		leaf, err = getCertificateFromPEM(certStr)
 		if err != nil {
 			continue
 		}
 		intermediates := x509.NewCertPool()
-		for j, certStr2 := range certChainStr {
+		for j, certStr2 := range certChain.Chain {
 			if i != j {
 				if !intermediates.AppendCertsFromPEM([]byte(certStr2)) {
 					err = errors.New("failed to append intermediate certificate")
@@ -51,7 +51,11 @@ func ValidateChainPem(certChainStr []string, rootStores []string, rootCAFile str
 		break
 	}
 
-	return isValid, err
+	valResult.IsValid = isValid
+	if err != nil {
+		valResult.ErrorData = err.Error()
+	}
+	resultChan <- valResult
 }
 
 func getCertificateFromPEM(certStr string) (*x509.Certificate, error) {
@@ -71,7 +75,7 @@ func getCertificateFromPEM(certStr string) (*x509.Certificate, error) {
 	return cert, nil
 }
 
-func getRootCAs(rootStores []string, rootCAfile string) (*x509.CertPool, error) {
+func GetRootCAs(rootStores []string, rootCAfile string) (*x509.CertPool, error) {
 	rootCAs, err := x509.SystemCertPool()
 	if err != nil {
 		return nil, errors.New("failed to fetch system root CA certificates")
