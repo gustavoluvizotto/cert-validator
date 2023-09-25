@@ -15,7 +15,7 @@ go build .
 
 ## Usage
 ```shell
-./cert-validator --input-csv=example/input-sample.csv --tls-root --root-ca-file=/etc/ssl/cert.pem  -v 2 --log-file=example/log.json --output=example/output-sample.parquet
+./cert-validator --input-csv=example/input-sample.csv --tls-root --root-ca-file=/etc/ssl/cert.pem --scan-date=20230920  -v 2 --log-file=example/log.json --output=example/output-sample.parquet
 ```
 The ```--input-csv``` flag specifies the path to the input csv file.
 The ```--tls-root``` flag specifies whether to use the CCADB TLS/SSL root CA certificates.
@@ -24,10 +24,12 @@ Alternatively, you can specify ```--smime-root``` to use the CCADB S/MIME root C
 This flag is also optional and defaults to ```false```.
 The ```--root-ca-file``` flag specifies the path to a root CA certificates file.
 This flag is optional and defaults to empty.
-The ```--log-file``` flag specifies the path to the log file.
-It is optional and defaults to ```stdout```.
+The ```--scan-date``` flag specifies the date the certificates were collected which is used to determine the validity of the certificates.
 The ```-v``` flag controls the verbosity of the output.
 It is optional and defaults to 0 and goes until 2.
+The ```--log-file``` flag specifies the path to the log file.
+It is optional and defaults to ```stdout```.
+The ```--output``` flag specifies the path to the output parquet file.
 
 If you do not specify ```--tls-root``` or ```--smime-root```, and/or ```--root-ca-file```, the program will use the system's root CA certificates only.
 For all other cases, the system root CA certificates will be used in addition to the specified root CA certificates.

@@ -12,15 +12,18 @@ import (
 	"time"
 )
 
-func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultChan chan result.ValidationResult) {
-	log.Debug().Int32("id", certChain.Id).Msg("Validating certificate chain")
+func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultChan chan result.ValidationResult, scanDate time.Time) {
+	log.Debug().Int32("id", *certChain.Id).Msg("Validating certificate chain")
 
-	// Iterate over the certificates in the chain, permuting the leaf certificate and the intermediate certificates,
-	// and verify the chain against the root CAs
-	valResult := result.ValidationResult{Id: certChain.Id, IsValid: false}
+	// rfc5280#section-4.2.1.12
+	keyUsage := make([]x509.ExtKeyUsage, x509.ExtKeyUsageServerAuth)
+	valResult := result.ValidationResult{Id: *certChain.Id, IsValid: false}
 	var leaf *x509.Certificate
 	var err error
 	isValid := false
+
+	// Iterate over the certificates in the chain, permuting the leaf certificate and the intermediate certificates,
+	// and verify the chain against the root CAs
 	for i, certStr := range certChain.Chain {
 		leaf, err = getCertificateFromPEM(certStr)
 		if err != nil {
@@ -38,8 +41,10 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 		// Build the certificate verification options
 		opts := x509.VerifyOptions{
 			Roots:         rootCAs,
-			CurrentTime:   time.Now(),
+			CurrentTime:   scanDate,
 			Intermediates: intermediates,
+			DNSName:       "",
+			KeyUsages:     keyUsage,
 		}
 
 		// Verify the certificate chain

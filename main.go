@@ -9,6 +9,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"os"
+	"time"
 )
 
 func main() {
@@ -59,6 +60,12 @@ func main() {
 		"root-ca-file",
 		"",
 		"Use root store from PEM file")
+
+	var scanDateArg string
+	flag.StringVar(&scanDateArg,
+		"scan-date",
+		"",
+		"Date the certificates were collected. Format: YYYYMMDD")
 	flag.Parse()
 
 	log.Logger = log.Output(zerolog.NewConsoleWriter())
@@ -73,6 +80,15 @@ func main() {
 
 	if output == "" {
 		log.Fatal().Msg("Output file is required")
+		return
+	}
+	if scanDateArg == "" {
+		log.Fatal().Msg("Scan date is required")
+		return
+	}
+	scanDate, err := time.Parse("20060102", scanDateArg)
+	if err != nil {
+		log.Fatal().Msg("Incorrect format for scan date argument. Use YYYYMMDD")
 		return
 	}
 
@@ -108,12 +124,12 @@ func main() {
 		certChains = input.LoadParquet(inputParquet)
 	}
 
-	validChainChan := validateChain(certChains, rootStores, rootCAFile)
+	validChainChan := validateChain(certChains, rootStores, rootCAFile, scanDate)
 	nrChains := len(certChains)
 	result.ConsumeResultChannel(*validChainChan, nrChains, output)
 }
 
-func validateChain(certChains []input.CertChain, rootStores []string, rootCAFile string) *chan result.ValidationResult {
+func validateChain(certChains []input.CertChain, rootStores []string, rootCAFile string, scanDate time.Time) *chan result.ValidationResult {
 	rootCAs, err := validator.GetRootCAs(rootStores, rootCAFile)
 	if err != nil {
 		log.Fatal().Msg(err.Error())
@@ -121,7 +137,7 @@ func validateChain(certChains []input.CertChain, rootStores []string, rootCAFile
 	}
 	validChainChan := make(chan result.ValidationResult)
 	for _, certChain := range certChains {
-		go validator.ValidateChainPem(certChain, rootCAs, validChainChan)
+		go validator.ValidateChainPem(certChain, rootCAs, validChainChan, scanDate)
 	}
 	return &validChainChan
 }

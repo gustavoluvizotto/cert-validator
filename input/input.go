@@ -12,7 +12,7 @@ import (
 )
 
 type CertChain struct {
-	Id    int32    `parquet:"name=id, type=INT32"`
+	Id    *int32   `parquet:"name=id, type=INT32"`
 	Chain []string `parquet:"name=chain, type=LIST, valuetype=BYTE_ARRAY, valueconvertedtype=UTF8"`
 }
 
@@ -33,8 +33,9 @@ func LoadCsv(fileName string) []CertChain {
 			log.Fatal().Str("error", err.Error()).Msg("Unable to parse JSON input")
 			return nil
 		}
+		id2 := int32(id)
 		certChains[i] = CertChain{
-			Id:    int32(id),
+			Id:    &id2,
 			Chain: pemCerts,
 		}
 	}
@@ -43,7 +44,6 @@ func LoadCsv(fileName string) []CertChain {
 }
 
 func LoadParquet(fileName string) []CertChain {
-	// FIXME this is not working
 	fr, err := local.NewLocalFileReader(fileName)
 	if err != nil {
 		log.Fatal().Str("file", fileName).Str("error", err.Error()).Msg("Failed to open file")
@@ -65,23 +65,12 @@ func LoadParquet(fileName string) []CertChain {
 
 	// read parquet file
 	num := int(pr.GetNumRows())
-	//res := make([]interface{}, num)
 	res, err := pr.ReadByNumber(num)
 	if err != nil {
 		log.Fatal().Str("error", err.Error()).Msg("Can't read")
 		return nil
 	}
-	/*
-	   for i := 0; i < num; i++ {
-	       certChain := make([]CertChain, 1)
-	       if err = pr.Read(&certChain); err != nil {
-	           log.Fatal().Str("error", err.Error()).Msg("Can't read")
-	           return nil
-	       }
-	       res[i] = certChain
-	       break
-	   }
-	*/
+
 	certChains := make([]CertChain, len(res))
 	for i, v := range res {
 		certChains[i] = v.(CertChain)
