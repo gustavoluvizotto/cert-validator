@@ -5,6 +5,7 @@ X.509 certificate chain validator.
 * Go environment
 * Internet connection (to download the CCADB root CA certificates). 
 This can be avoided by **not** specifying the ```--tls-root``` or ```--smime-root``` flags.
+* Podman (in case using the container solution)
 
 ## Build
 Clone this repository and run the following command in the toplevel directory:

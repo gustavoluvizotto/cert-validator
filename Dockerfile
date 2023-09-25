@@ -8,3 +8,4 @@ RUN git clone https://github.com/gustavoluvizotto/cert-validator.git
 RUN cd cert-validator && go install .
 
 ENTRYPOINT ["/go/bin/cert-validator"]
+

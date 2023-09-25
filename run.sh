@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
 
-podman run --rm -v "$(pwd)":/go/bin --name cert-validator cert-validator "$@"
+SHARED_DIR="shared_dir"
+
+podman run --rm -v "$(pwd)"/"${SHARED_DIR}":/go/"${SHARED_DIR}" --name cert-validator cert-validator "$@"
+
