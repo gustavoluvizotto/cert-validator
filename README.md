@@ -5,16 +5,17 @@ X.509 certificate chain validator.
 * Go environment
 * Internet connection (to download the CCADB root CA certificates). 
 This can be avoided by **not** specifying the ```--tls-root``` or ```--smime-root``` flags.
-* Podman (in case using the container solution)
+* Podman (in case you want to use the container solution).
 
 ## Build
 Clone this repository and run the following command in the toplevel directory:
 ```shell
 go build .
 ```
+
 ## Usage
 ```shell
-./cert-validator --input-csv=example/input-sample.csv --tls-root --root-ca-file=/etc/ssl/cert.pem --log-file=example/log.json -v 2
+./cert-validator --input-csv=example/input-sample.csv --tls-root --root-ca-file=/etc/ssl/cert.pem  -v 2 --log-file=example/log.json --output=example/output-sample.parquet
 ```
 The ```--input-csv``` flag specifies the path to the input csv file.
 The ```--tls-root``` flag specifies whether to use the CCADB TLS/SSL root CA certificates.
@@ -37,6 +38,20 @@ This is no different than failing to validate a certificate at all" [1].
 
 [1] https://blog.mozilla.org/security/2021/05/10/beware-of-applications-misusing-root-stores/
 
+## Container Usage
+If you want to run the program in a container, you can build the container image by running the following command in the toplevel directory:
+```shell
+./build.sh
+```
+
+Then you must run the container by executing the following command:
+```shell
+./run.sh --input-csv=shared_dir/input-sample.csv --tls-root --root-ca-file=shared_dir/cert.pem -v 2 --log-file=shared_dir/log.json --output=shared_dir/output-sample.parquet
+```
+
+Note that all your input and output files must be in the ```shared_dir``` directory.
+The other flags are the same as the ones described in the [Usage](#usage) section.
+
 ## Input and Output
 There are 2 different input types the program accepts: csv and parquet.
 
@@ -54,7 +69,7 @@ The input in csv format has the following columns:
 id,chain
 ```
 Where ```chain``` is a comma-separated list of PEM-encoded X.509 certificates within double quotes.
-The ```id``` parameters is an integer that uniquely identifies the chain.
+The ```id``` parameters in both types of input is an integer that uniquely identifies the chain.
 
 The output is in parquet format and has the following schema:
 ```
@@ -66,3 +81,4 @@ root
 
 The ```is_valid``` field is ```true``` if the chain is valid and ```false``` otherwise for the given PEM certificates.
 The ```error``` field contains the error message if the chain is invalid and ```null``` otherwise.
+The ```id``` field is the same as the one in the input.
