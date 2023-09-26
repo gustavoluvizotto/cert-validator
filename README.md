@@ -48,11 +48,10 @@ If you want to run the program in a container, you can build the container image
 
 Then you must run the container by executing the following command:
 ```shell
-./run.sh --input-csv=shared_dir/input-sample.csv --tls-root --root-ca-file=shared_dir/cert.pem -v 2 --log-file=shared_dir/log.json --output=shared_dir/output-sample.parquet
+./run.sh --input-csv=shared_dir/input-sample.csv ...(same parameters as the ones described in the [Usage](#usage) section)
 ```
 
 Note that all your input and output files must be in the ```shared_dir``` directory.
-The other flags are the same as the ones described in the [Usage](#usage) section.
 
 ## Input and Output
 There are 2 different input types the program accepts: csv and parquet.
