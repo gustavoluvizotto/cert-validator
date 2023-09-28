@@ -1,11 +1,14 @@
 FROM docker.io/golang:1.21.1
 LABEL authors="Gustavo Luvizotto Cesar"
 
-RUN apt-get update -y
-RUN apt-get install curl -y
+WORKDIR /app
 
-RUN git clone https://github.com/gustavoluvizotto/cert-validator.git
-RUN cd cert-validator && go install .
+COPY go.mod go.sum ./
+RUN go mod download
 
-ENTRYPOINT ["/go/bin/cert-validator"]
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux go build -o /cert-validator
+
+ENTRYPOINT ["/cert-validator"]
 
