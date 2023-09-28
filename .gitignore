@@ -1,4 +1,7 @@
 .idea/*
 cert-validator
-example/log.json
+example/*.json
 example/output-sample.parquet
+shared_dir/*.parquet
+shared_dir/*.csv
+shared_dir/*.json
