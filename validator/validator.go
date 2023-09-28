@@ -4,12 +4,14 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"github.com/etnz/permute"
 	"github.com/gustavoluvizotto/cert-validator/input"
 	"github.com/gustavoluvizotto/cert-validator/result"
 	"github.com/rs/zerolog/log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -23,6 +25,7 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 	var leaf *x509.Certificate
 	var err error
 	isValid := false
+	var validChains [][]int32
 	// Iterate over the certificates in the chain, permuting the leaf certificate and the intermediate certificates,
 	// and verify the chain against the root CAs. Save all valid permutations
 	for i, certStr := range certChain.Chain {
@@ -43,11 +46,14 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 		for h.Next(&s) {
 			permute.SwapInts(s, intermediateIdx)
 			intermediates := x509.NewCertPool()
+			var candidateValid []int32
+			candidateValid = append(candidateValid, int32(i))
 			for _, idx := range intermediateIdx {
 				if !intermediates.AppendCertsFromPEM([]byte(certChain.Chain[idx])) {
 					err = errors.New("failed to append intermediate certificate")
 					continue
 				}
+				candidateValid = append(candidateValid, int32(idx))
 			}
 			if err != nil {
 				// could not append one of the intermediate certificates, meaning the cert is invalid
@@ -68,14 +74,12 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 				continue
 			}
 			isValid = true
-			break
-		}
-		if isValid {
-			break
+			validChains = append(validChains, candidateValid)
 		}
 	}
 
 	valResult.IsValid = isValid
+	valResult.ValidChains = strings.ReplaceAll(fmt.Sprint(validChains), " ", ", ")
 	if err != nil {
 		valResult.ErrorData = err.Error()
 	}

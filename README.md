@@ -78,8 +78,13 @@ root
  |-- id: integer (nullable = true)
  |-- is_valid: boolean (nullable = true)
  |-- error: string (nullable = true)
+ |-- valid_chains: string (nullable = true)
 ```
 
+The ```id``` field is the same as the one in the input.
 The ```is_valid``` field is ```true``` if the chain is valid and ```false``` otherwise for the given PEM certificates.
 The ```error``` field contains the error message if the chain is invalid and ```null``` otherwise.
-The ```id``` field is the same as the one in the input.
+The ```valid_chains``` field contains a comma-separated list of valid chains for the given PEM certificates if the chain is valid and ```[]``` otherwise.
+This is a string representation of a list of list of indexes of the certificates in the input chain.
+E.g. "[[0, 2, 1], [1, 2, 0]]" means that two chains are valid: the first chain the leaf certificate is take from the index 0 of the input chain, the intermediate certificates are indexes 2 and 1.
+The second chain the leaf certificate is taken from the index 1 of the input chain, the intermediate certificates are indexes 2 and 0.
