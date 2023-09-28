@@ -9,5 +9,6 @@ while (( "$#" )); do
     fi
 done
 
-podman run --net=host --rm -v "$(pwd)"/"${SHARED_DIR}":/app/"${SHARED_DIR}" --name cert-validator cert-validator "${PARAMS[@]}"
+# show to the user to run it...
+echo "podman run --net=host --rm -v \"\$(pwd)\"/${SHARED_DIR}:/app/${SHARED_DIR} --name cert-validator cert-validator"
 
