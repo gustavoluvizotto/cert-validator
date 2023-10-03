@@ -1,6 +1,10 @@
 # cert-validator
 X.509 certificate chain validator.
 
+## Environment
+Currently, it works only on Linux.
+That's because the program appends other root CAs to the system's root CA certificates, and the the x509 package in Go does not support this on Windows and macOS. 
+
 ## Requirements
 * Go environment
 * Internet connection (to download the CCADB root CA certificates). 
@@ -70,6 +74,7 @@ The input in csv format has the following columns:
 id,chain
 ```
 Where ```chain``` is a comma-separated list of PEM-encoded X.509 certificates within double quotes.
+The first element of the ```chain``` is considered the leaf certificate, and we assume that the chain is already in signing order (leaf certificate to the root certificate).
 The ```id``` parameters in both types of input is an integer that uniquely identifies the chain.
 
 The output is in parquet format and has the following schema:
@@ -86,5 +91,9 @@ The ```is_valid``` field is ```true``` if the chain is valid and ```false``` oth
 The ```error``` field contains the error message if the chain is invalid and ```null``` otherwise.
 The ```valid_chains``` field contains a comma-separated list of valid chains for the given PEM certificates if the chain is valid and ```[]``` otherwise.
 This is a string representation of a list of list of indexes of the certificates in the input chain.
-E.g. "[[0, 2, 1], [1, 2, 0]]" means that two chains are valid: the first chain the leaf certificate is take from the index 0 of the input chain, the intermediate certificates are indexes 2 and 1.
-The second chain the leaf certificate is taken from the index 1 of the input chain, the intermediate certificates are indexes 2 and 0.
+E.g. "[[0, 2, 1], [0, 1, 2]]" means that two chains are valid: the first chain the leaf certificate is take from the index 0 of the input chain, the intermediate certificates are indexes 2 and 1.
+The second chain the leaf certificate is taken from the index 0 of the input chain, the intermediate certificates are indexes 1 and 2.
+
+## Notes
+The program tries to find at most ```maxPermutations=250000``` (see ```validator/validator.go```) other valid chains.
+It is a trade-off between depth of the search and the time it takes to find the valid chains.
