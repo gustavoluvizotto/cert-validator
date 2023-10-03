@@ -66,7 +66,7 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 	for _, validChain := range validChains {
 		var validChainSn []string
 		for _, cert := range validChain {
-			serial := fmt.Sprintf("%X", cert.SerialNumber)
+			serial := fmt.Sprintf("'%X'", cert.SerialNumber)
 			validChainSn = append(validChainSn, serial)
 		}
 		validChainsSn = append(validChainsSn, validChainSn)
