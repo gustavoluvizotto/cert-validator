@@ -90,10 +90,4 @@ The ```id``` field is the same as the one in the input.
 The ```is_valid``` field is ```true``` if the chain is valid and ```false``` otherwise for the given PEM certificates.
 The ```error``` field contains the error message if the chain is invalid and ```null``` otherwise.
 The ```valid_chains``` field contains a comma-separated list of valid chains for the given PEM certificates if the chain is valid and ```[]``` otherwise.
-This is a string representation of a list of list of indexes of the certificates in the input chain.
-E.g. "[[0, 2, 1], [0, 1, 2]]" means that two chains are valid: the first chain the leaf certificate is take from the index 0 of the input chain, the intermediate certificates are indexes 2 and 1.
-The second chain the leaf certificate is taken from the index 0 of the input chain, the intermediate certificates are indexes 1 and 2.
-
-## Notes
-The program tries to find at most ```maxPermutations=250000``` (see ```validator/validator.go```) other valid chains.
-It is a trade-off between depth of the search and the time it takes to find the valid chains.
+This is a string representation of a list of list of serial numbers of the certificates that are valid according to ```x509.Verify```.

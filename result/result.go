@@ -15,12 +15,12 @@ type ValidationResult struct {
 }
 
 /*
-The below attempt does not work, hence the ValidChains is treated as string
+// The below attempt does not work, hence the ValidChains is treated as string
 type ValidationResult struct {
 	Id          int32
 	IsValid     bool
 	ErrorData   string
-	ValidChains [][]int32
+	ValidChains [][]string
 }
 
 var jsonSchema = `
@@ -35,8 +35,8 @@ var jsonSchema = `
 				"Tag": "name=valid_chains, type=LIST",
 				"Fields": [
 					{
-						"Tag": "name=element_root, type=LIST",
-						"Fields": [{"Tag": "name=element, type=INT32"}]
+						"Tag": "name=element, type=LIST",
+						"Fields": [{"Tag": "name=element, type=BYTE_ARRAY, convertedtype=UTF8"}]
 					}
 				]
 			}

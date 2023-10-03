@@ -5,7 +5,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/etnz/permute"
 	"github.com/gustavoluvizotto/cert-validator/input"
 	"github.com/gustavoluvizotto/cert-validator/result"
 	"github.com/rs/zerolog/log"
@@ -15,15 +14,13 @@ import (
 	"time"
 )
 
-// max attempts to find other valid chains
-const maxPermutations = 250000
-
 func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultChan chan result.ValidationResult, scanDate time.Time) {
 	// rfc5280#section-4.2.1.12
-	keyUsage := make([]x509.ExtKeyUsage, x509.ExtKeyUsageAny) // here we give a lower bound in our results
+	keyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageAny} // here we give a lower bound in our results
 	valResult := result.ValidationResult{Id: *certChain.Id, IsValid: false}
+
 	var err error
-	var validChains [][]int32
+	var validChainsSn [][]string
 
 	// first element of the chain is the leaf certificate
 	leaf, err := getCertificateFromPEM(certChain.Chain[0])
@@ -38,13 +35,12 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 	// and verify the chain against the root CAs. Save all valid permutations
 	//var leaf *x509.Certificate
 	var intermediateIdx []int
-	var intermediates *x509.CertPool
+	intermediates := x509.NewCertPool()
 	for i := 1; i < len(certChain.Chain); i++ {
-		intermediates = x509.NewCertPool()
 		if !intermediates.AppendCertsFromPEM([]byte(certChain.Chain[i])) {
 			valResult.ErrorData = "failed to append intermediate certificate"
 			resultChan <- valResult
-			log.Debug().Int32("id", *certChain.Id).Msg("Invalid certificate chain")
+			log.Debug().Int32("id", *certChain.Id).Msg(valResult.ErrorData)
 			return
 		}
 		intermediateIdx = append(intermediateIdx, i)
@@ -59,7 +55,7 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 		KeyUsages:     keyUsage,
 	}
 	// Verify the certificate chain
-	_, err = leaf.Verify(opts)
+	validChains, err := leaf.Verify(opts)
 	if err != nil {
 		valResult.ErrorData = err.Error()
 		resultChan <- valResult
@@ -67,64 +63,23 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 		return
 	}
 
-	// valid chain
-	var validChain []int32
-	validChain = append(validChain, 0)
-	for _, idx := range intermediateIdx {
-		validChain = append(validChain, int32(idx))
-	}
-	validChains = append(validChains, validChain)
-
-	// finding more chains
-	var s [2]int
-	h := permute.NewHeap(len(intermediateIdx))
-	permutationCount := 0
-	for h.Next(&s) {
-		if permutationCount >= maxPermutations {
-			break
+	for _, validChain := range validChains {
+		var validChainSn []string
+		for _, cert := range validChain {
+			serial := fmt.Sprintf("%X", cert.SerialNumber)
+			validChainSn = append(validChainSn, serial)
 		}
-		permutationCount += 1
-
-		permute.SwapInts(s, intermediateIdx)
-		intermediates := x509.NewCertPool()
-		var candidateValid []int32
-		for _, idx := range intermediateIdx {
-			if !intermediates.AppendCertsFromPEM([]byte(certChain.Chain[idx])) {
-				err = errors.New("failed to append intermediate certificate")
-				continue
-			}
-			candidateValid = append(candidateValid, int32(idx))
-		}
-		if err != nil {
-			// could not append one of the intermediate certificates, meaning the cert is invalid
-			continue
-		}
-		// Build the certificate verification options
-		opts = x509.VerifyOptions{
-			Roots:         rootCAs,
-			CurrentTime:   scanDate,
-			Intermediates: intermediates,
-			DNSName:       "",
-			KeyUsages:     keyUsage,
-		}
-
-		// Verify the certificate chain
-		_, err = leaf.Verify(opts)
-		if err != nil {
-			continue
-		}
-		candidateValid = append([]int32{0}, candidateValid...)
-		validChains = append(validChains, candidateValid)
+		validChainsSn = append(validChainsSn, validChainSn)
 	}
 
 	valResult.IsValid = true
-	valResult.ValidChains = strings.ReplaceAll(fmt.Sprint(validChains), " ", ", ")
+	valResult.ValidChains = strings.ReplaceAll(fmt.Sprint(validChainsSn), " ", ", ")
 	if err != nil {
 		valResult.ErrorData = err.Error()
 	}
 
 	resultChan <- valResult
-	log.Debug().Int("permutations", permutationCount+1).Int32("id", *certChain.Id).Msg("Validated certificate chain")
+	log.Debug().Int32("id", *certChain.Id).Msg("Validated certificate chain")
 }
 
 func getCertificateFromPEM(certStr string) (*x509.Certificate, error) {

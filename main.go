@@ -135,7 +135,7 @@ func validateChain(certChains []input.CertChain, rootStores []string, rootCAFile
 		log.Fatal().Msg(err.Error())
 		return nil
 	}
-	validChainChan := make(chan result.ValidationResult)
+	validChainChan := make(chan result.ValidationResult, len(certChains))
 	for _, certChain := range certChains {
 		go validator.ValidateChainPem(certChain, rootCAs, validChainChan, scanDate)
 	}
