@@ -10,10 +10,12 @@ import (
 	"time"
 )
 
-const tlsUrl = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustTLSSSLPEMCSV?TrustBitsInclude=Websites"
-const sMimeUrl = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustSMIMEPEMCSV?TrustBitsInclude=Email"
-const tlsRootsFile = "IncludedRootsDistrustTLSSSLPEM.csv"
-const smimeRootsFile = "IncludedRootsDistrustSMIMEPEM.csv"
+const (
+	tlsUrl         = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustTLSSSLPEMCSV?TrustBitsInclude=Websites"
+	sMimeUrl       = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustSMIMEPEMCSV?TrustBitsInclude=Email"
+	tlsRootsFile   = "IncludedRootsDistrustTLSSSLPEM.csv"
+	smimeRootsFile = "IncludedRootsDistrustSMIMEPEM.csv"
+)
 
 const (
 	TLS uint = iota
@@ -30,7 +32,7 @@ func LoadTlsRoots(rootType uint) ([]string, error) {
 		url = sMimeUrl
 		filePath = smimeRootsFile
 	}
-	err := download(url, filePath)
+	err := Download(url, filePath)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +64,7 @@ func LoadTlsRoots(rootType uint) ([]string, error) {
 	return rootStores, nil
 }
 
-func download(url string, filePath string) error {
+func Download(url string, filePath string) error {
 	out, err := os.Create(filePath)
 	if err != nil {
 		return err

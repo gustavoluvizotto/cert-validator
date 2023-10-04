@@ -104,18 +104,24 @@ func main() {
 	if useTlsRoot {
 		tlsRootStores, err := rootstores.LoadTlsRoots(rootstores.TLS)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Error downloading TLS roots")
+			log.Fatal().Err(err).Msg("Error loading CCADB TLS root certificates")
 			return
 		}
 		rootStores = append(rootStores, tlsRootStores...)
 	} else if useSmimeRoot {
 		sMimeRootStores, err := rootstores.LoadTlsRoots(rootstores.SMIME)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Error downloading sMIME roots")
+			log.Fatal().Err(err).Msg("Error loading CCADB sMIME root certificates")
 			return
 		}
 		rootStores = append(rootStores, sMimeRootStores...)
 	}
+	microsoftRootStores, err := rootstores.LoadMicrosoftRoot()
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error loading Microsoft root certificates")
+		return
+	}
+	rootStores = append(rootStores, microsoftRootStores...)
 
 	var certChains []input.CertChain
 	if inputCsv != "" {
