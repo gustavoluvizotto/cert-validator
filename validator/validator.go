@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/gustavoluvizotto/cert-validator/input"
 	"github.com/gustavoluvizotto/cert-validator/result"
+	"github.com/gustavoluvizotto/cert-validator/rootstores"
 	"github.com/rs/zerolog/log"
 	"os"
 	"strconv"
@@ -109,6 +110,7 @@ func GetRootCAs(rootStores []string, rootCAfile string) (*x509.CertPool, error) 
 			return nil, errors.New("failed to append CA certificate " + strconv.Itoa(i) + " from root stores")
 		}
 	}
+
 	if rootCAfile != "" {
 		rootFile, err := os.ReadFile(rootCAfile)
 		if err != nil {
@@ -116,6 +118,21 @@ func GetRootCAs(rootStores []string, rootCAfile string) (*x509.CertPool, error) 
 		}
 		if !rootCAs.AppendCertsFromPEM(rootFile) {
 			return nil, errors.New("failed to append root CA file certificate")
+		}
+	}
+
+	_, err = os.Stat(rootstores.GoogleServicesFile)
+	if err == nil {
+		rootFile, err := os.ReadFile(rootstores.GoogleServicesFile)
+		if err != nil {
+			return nil, errors.New("failed to read " + rootstores.GoogleServicesFile)
+		}
+		if !rootCAs.AppendCertsFromPEM(rootFile) {
+			return nil, errors.New("failed to append Google services root CAs certificates")
+		}
+		err = os.Remove(rootstores.GoogleServicesFile)
+		if err != nil {
+			log.Info().Err(err).Msg("Error removing file")
 		}
 	}
 	return rootCAs, nil

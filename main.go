@@ -118,10 +118,14 @@ func main() {
 	}
 	microsoftRootStores, err := rootstores.LoadMicrosoftRoot()
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error loading Microsoft root certificates")
-		return
+		log.Warn().Err(err).Msg("Warning! Could not load Microsoft root certificates")
 	}
 	rootStores = append(rootStores, microsoftRootStores...)
+
+	err = rootstores.DownloadGoogleServicesRoot()
+	if err != nil {
+		log.Warn().Err(err).Msg("Warning! Could not download Google services root certificates")
+	}
 
 	var certChains []input.CertChain
 	if inputCsv != "" {
