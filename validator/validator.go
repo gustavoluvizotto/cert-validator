@@ -9,6 +9,7 @@ import (
 	"github.com/gustavoluvizotto/cert-validator/result"
 	"github.com/gustavoluvizotto/cert-validator/rootstores"
 	"github.com/rs/zerolog/log"
+	"go.step.sm/crypto/x509util"
 	"os"
 	"strconv"
 	"strings"
@@ -19,9 +20,7 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 	// rfc5280#section-4.2.1.12
 	keyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageAny} // here we give a lower bound in our results
 	valResult := result.ValidationResult{Id: *certChain.Id, IsValid: false}
-
 	var err error
-	var validChainsSn [][]string
 
 	// first element of the chain is the leaf certificate
 	leaf, err := getCertificateFromPEM(certChain.Chain[0])
@@ -64,17 +63,18 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 		return
 	}
 
+	var validChainsFp [][]string
 	for _, validChain := range validChains {
-		var validChainSn []string
+		var validChainFp []string
 		for _, cert := range validChain {
-			serial := fmt.Sprintf("'%X'", cert.SerialNumber)
-			validChainSn = append(validChainSn, serial)
+			fp := strconv.Quote(strings.ToUpper(x509util.Fingerprint(cert)))
+			validChainFp = append(validChainFp, fp)
 		}
-		validChainsSn = append(validChainsSn, validChainSn)
+		validChainsFp = append(validChainsFp, validChainFp)
 	}
 
 	valResult.IsValid = true
-	valResult.ValidChains = strings.ReplaceAll(fmt.Sprint(validChainsSn), " ", ", ")
+	valResult.ValidChains = strings.ReplaceAll(fmt.Sprint(validChainsFp), " ", ", ")
 	if err != nil {
 		valResult.ErrorData = err.Error()
 	}
@@ -105,11 +105,6 @@ func GetRootCAs(rootStores []string, rootCAfile string) (*x509.CertPool, error) 
 	if err != nil {
 		return nil, errors.New("failed to fetch system root CA certificates")
 	}
-	for i, rootStore := range rootStores {
-		if !rootCAs.AppendCertsFromPEM([]byte(rootStore)) {
-			return nil, errors.New("failed to append CA certificate " + strconv.Itoa(i) + " from root stores")
-		}
-	}
 
 	if rootCAfile != "" {
 		rootFile, err := os.ReadFile(rootCAfile)
@@ -135,5 +130,12 @@ func GetRootCAs(rootStores []string, rootCAfile string) (*x509.CertPool, error) 
 			log.Info().Err(err).Msg("Error removing file")
 		}
 	}
+
+	for i, rootStore := range rootStores {
+		if !rootCAs.AppendCertsFromPEM([]byte(rootStore)) {
+			return nil, errors.New("failed to append CA certificate " + strconv.Itoa(i) + " from root stores")
+		}
+	}
+
 	return rootCAs, nil
 }

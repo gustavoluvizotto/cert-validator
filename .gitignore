@@ -5,3 +5,5 @@ example/output-sample.parquet
 shared_dir/*.parquet
 shared_dir/*.csv
 shared_dir/*.json
+shared_dir/*.pem
+shared_dir/*.crt
