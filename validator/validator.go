@@ -5,16 +5,20 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/etnz/permute"
 	"github.com/gustavoluvizotto/cert-validator/input"
 	"github.com/gustavoluvizotto/cert-validator/result"
 	"github.com/gustavoluvizotto/cert-validator/rootstores"
 	"github.com/rs/zerolog/log"
 	"go.step.sm/crypto/x509util"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 )
+
+const maxPermutations = 250000
 
 func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultChan chan result.ValidationResult, scanDate time.Time) {
 	// rfc5280#section-4.2.1.12
@@ -73,6 +77,60 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 		validChainsFp = append(validChainsFp, validChainFp)
 	}
 
+	// finding more chains
+	var s [2]int
+	h := permute.NewHeap(len(intermediateIdx))
+	permutationCount := 0
+	for h.Next(&s) {
+		if permutationCount >= maxPermutations {
+			break
+		}
+		permutationCount += 1
+
+		permute.SwapInts(s, intermediateIdx)
+		intermediates := x509.NewCertPool()
+		for _, idx := range intermediateIdx {
+			if !intermediates.AppendCertsFromPEM([]byte(certChain.Chain[idx])) {
+				err = errors.New("failed to append intermediate certificate")
+				continue
+			}
+		}
+		if err != nil {
+			// could not append one of the intermediate certificates, meaning the cert is invalid
+			continue
+		}
+		// Build the certificate verification options
+		opts = x509.VerifyOptions{
+			Roots:         rootCAs,
+			CurrentTime:   scanDate,
+			Intermediates: intermediates,
+			DNSName:       "",
+			KeyUsages:     keyUsage,
+		}
+
+		// Verify the certificate chain
+		validChains, err = leaf.Verify(opts)
+		if err != nil {
+			break
+		}
+		if tryAppendChain(validChainsFp, validChains) {
+			break
+		}
+	}
+	// Build the certificate verification options
+	opts = x509.VerifyOptions{
+		Roots:         rootCAs,
+		CurrentTime:   scanDate,
+		Intermediates: nil,
+		DNSName:       "",
+		KeyUsages:     keyUsage,
+	}
+	// Verify the certificate chain
+	validChains, err = leaf.Verify(opts)
+	if err == nil {
+		tryAppendChain(validChainsFp, validChains)
+	}
+
 	valResult.IsValid = true
 	valResult.ValidChains = strings.ReplaceAll(fmt.Sprint(validChainsFp), " ", ", ")
 	if err != nil {
@@ -80,7 +138,7 @@ func ValidateChainPem(certChain input.CertChain, rootCAs *x509.CertPool, resultC
 	}
 
 	resultChan <- valResult
-	log.Debug().Int32("id", *certChain.Id).Msg("Validated certificate chain")
+	log.Debug().Int("permutations", permutationCount+1).Int32("id", *certChain.Id).Msg("Validated certificate chain")
 }
 
 func getCertificateFromPEM(certStr string) (*x509.Certificate, error) {
@@ -138,4 +196,29 @@ func GetRootCAs(rootStores []string, rootCAfile string) (*x509.CertPool, error) 
 	}
 
 	return rootCAs, nil
+}
+
+func tryAppendChain(validChainsFp [][]string, validChains [][]*x509.Certificate) bool {
+	allPresent := true
+	for _, validChain := range validChains {
+		var validChainFp []string
+		for _, cert := range validChain {
+			fp := strconv.Quote(strings.ToUpper(x509util.Fingerprint(cert)))
+			validChainFp = append(validChainFp, fp)
+		}
+		if !inSlice(validChainFp, validChainsFp) {
+			validChainsFp = append(validChainsFp, validChainFp)
+			allPresent = false
+		}
+	}
+	return allPresent
+}
+
+func inSlice(needle []string, haystack [][]string) bool {
+	for _, slice := range haystack {
+		if reflect.DeepEqual(slice, needle) {
+			return true
+		}
+	}
+	return false
 }

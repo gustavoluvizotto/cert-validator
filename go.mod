@@ -3,6 +3,7 @@ module github.com/gustavoluvizotto/cert-validator
 go 1.21.1
 
 require (
+	github.com/etnz/permute v0.0.0-20160126210303-99613134c393
 	github.com/rs/zerolog v1.31.0
 	github.com/xitongsys/parquet-go v1.6.2
 	github.com/xitongsys/parquet-go-source v0.0.0-20230919034749-0b16411e6349
@@ -15,6 +16,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect
 	github.com/apache/thrift v0.19.0 // indirect
+	github.com/etnz/stringset v0.0.0-20160903143730-b4da118f1741 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
