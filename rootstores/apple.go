@@ -15,10 +15,10 @@ import (
 const (
 	endpoint                 = "localhost:8080"
 	bucket                   = "catrin"
-	appleS3RootStoreLocation = "rootstores/format=raw/store=apple/"
+	AppleS3RootStoreLocation = "rootstores/format=raw/store=apple/"
 )
 
-var AppleRootStoreFile string
+var AppleRootStoreFile = "shared_dir/" // + filename to be filled in DownloadAppleRootStore if no error
 
 func DownloadAppleRootStore(scanDate time.Time) error {
 	cred := credentials.NewFileAWSCredentials("credentials", "download")
@@ -34,7 +34,7 @@ func DownloadAppleRootStore(scanDate time.Time) error {
 
 	var appleRootStoreS3File string
 	listOpts := minio.ListObjectsOptions{
-		Prefix:    appleS3RootStoreLocation,
+		Prefix:    AppleS3RootStoreLocation,
 		Recursive: true,
 	}
 	ctx := context.Background()
@@ -63,7 +63,7 @@ func DownloadAppleRootStore(scanDate time.Time) error {
 		}
 	}(obj)
 
-	AppleRootStoreFile = "shared_dir/" + filepath.Base(appleRootStoreS3File)
+	AppleRootStoreFile += filepath.Base(appleRootStoreS3File)
 	localFile, err := os.Create(AppleRootStoreFile)
 	if err != nil {
 		return err

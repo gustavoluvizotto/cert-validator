@@ -3,7 +3,7 @@ X.509 certificate chain validator.
 
 ## Description
 This program validates X.509 certificate chains using the ```crypto/x509``` Go package.
-It can validate chains using different root stores such as the CCADB TLS/SSL and s/MIME root CA certificates [1], Microsoft root store (available from CCADB resources [1]), Google services root store [2], Apple trust store [3], and optionally a custom root CA certificates file given by the user.
+It can validate chains using different root stores such as the CCADB TLS/SSL and s/MIME root CA certificates [1], Microsoft root store **TODO**, Google services root store [2], Apple trust store [3], and optionally a custom root CA certificates file given by the user.
 All the root stores are downloaded on the fly and used to validate the chains, so we always use the latest version of the root stores.
 According to Mozilla, "an application that uses a root store for a purpose other than what the store was created for has a critical security vulnerability.
 This is no different from failing to validate a certificate at all" [4].
@@ -24,8 +24,9 @@ That's because the program appends other root CAs to the system's root CA certif
 * Apple root certificates are stored in DACS object store and require valid credentials to access them.
 Hence, one can skip by using ```--no-apple``` flag.
 The only reason for this requirement is that the Apple root certificates (pem format) are not available online.
-We obtain them from a Apple Mac machine and store them in our research group data center.
+We obtain them from Apple Mac machine and store them in our research group data center.
 
+The access to the ```credentials``` file must be granted by the owner of this repo.
 The ```credentials``` file must be placed in the same folder of this project and has the following format:
 ```
 [download]

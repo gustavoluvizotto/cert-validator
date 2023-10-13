@@ -74,6 +74,13 @@ func main() {
 	} else {
 		zerolog.SetGlobalLevel(zerolog.WarnLevel)
 	}
+	if logFile != "" {
+		fh, err := os.Create(logFile)
+		if err != nil {
+			log.Fatal().Err(err).Str("file", logFile).Msg("Error creating log file")
+		}
+		log.Logger = log.Output(fh)
+	}
 
 	if output == "" {
 		log.Fatal().Msg("Output file is required")
@@ -87,14 +94,6 @@ func main() {
 	if err != nil {
 		log.Fatal().Msg("Incorrect format for scan date argument. Use YYYYMMDD")
 		return
-	}
-
-	if logFile != "" {
-		fh, err := os.Create(logFile)
-		if err != nil {
-			log.Fatal().Err(err).Str("file", logFile).Msg("Error creating log file")
-		}
-		log.Logger = log.Output(fh)
 	}
 
 	var certChains []input.CertChain

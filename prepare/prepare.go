@@ -17,10 +17,13 @@ func DownloadAllRootStores(noApple bool, scanDate time.Time) error {
 		log.Fatal().Err(err).Msg("Error loading CCADB sMIME root certificates")
 		return err
 	}
-	err = rootstores.Download(rootstores.MicrosoftUrl, rootstores.MicrosoftFile)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Warning! Could not load Microsoft root certificates")
-		return err
+	if false {
+		// not required
+		err = rootstores.Download(rootstores.MicrosofCodeSigningtUrl, rootstores.MicrosoftCodeSigningFile)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Warning! Could not load Microsoft code signing root certificates")
+			return err
+		}
 	}
 	err = rootstores.Download(rootstores.GoogleServicesURL, rootstores.GoogleServicesFile)
 	if err != nil {
