@@ -7,3 +7,4 @@ shared_dir/*.csv
 shared_dir/*.json
 shared_dir/*.pem
 shared_dir/*.crt
+credentials

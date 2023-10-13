@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"github.com/gustavoluvizotto/cert-validator/input"
+	"github.com/gustavoluvizotto/cert-validator/prepare"
 	"github.com/gustavoluvizotto/cert-validator/result"
-	"github.com/gustavoluvizotto/cert-validator/rootstores"
 	"github.com/gustavoluvizotto/cert-validator/validator"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -45,16 +45,6 @@ func main() {
 		0,
 		"Verbosity level (1 or 2)")
 
-	var useTlsRoot bool
-	flag.BoolVar(&useTlsRoot,
-		"tls-root",
-		false,
-		"Use TLS root store from CCADB")
-	var useSmimeRoot bool
-	flag.BoolVar(&useSmimeRoot,
-		"smime-root",
-		false,
-		"Use sMIME root store from CCADB")
 	var rootCAFile string
 	flag.StringVar(&rootCAFile,
 		"root-ca-file",
@@ -66,6 +56,13 @@ func main() {
 		"scan-date",
 		"",
 		"Date the certificates were collected. Format: YYYYMMDD")
+
+	var noApple bool
+	flag.BoolVar(&noApple,
+		"no-apple",
+		false,
+		"Skip Apple root store")
+
 	flag.Parse()
 
 	log.Logger = log.Output(zerolog.NewConsoleWriter())
@@ -100,33 +97,6 @@ func main() {
 		log.Logger = log.Output(fh)
 	}
 
-	var rootStores []string
-	if useTlsRoot {
-		tlsRootStores, err := rootstores.LoadTlsRoots(rootstores.TLS)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error loading CCADB TLS root certificates")
-			return
-		}
-		rootStores = append(rootStores, tlsRootStores...)
-	} else if useSmimeRoot {
-		sMimeRootStores, err := rootstores.LoadTlsRoots(rootstores.SMIME)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error loading CCADB sMIME root certificates")
-			return
-		}
-		rootStores = append(rootStores, sMimeRootStores...)
-	}
-	microsoftRootStores, err := rootstores.LoadMicrosoftRoot()
-	if err != nil {
-		log.Warn().Err(err).Msg("Warning! Could not load Microsoft root certificates")
-	}
-	rootStores = append(rootStores, microsoftRootStores...)
-
-	err = rootstores.DownloadGoogleServicesRoot()
-	if err != nil {
-		log.Warn().Err(err).Msg("Warning! Could not download Google services root certificates")
-	}
-
 	var certChains []input.CertChain
 	if inputCsv != "" {
 		certChains = input.LoadCsv(inputCsv)
@@ -134,20 +104,24 @@ func main() {
 		certChains = input.LoadParquet(inputParquet)
 	}
 
-	validChainChan := validateChain(certChains, rootStores, rootCAFile, scanDate)
+	if err = prepare.DownloadAllRootStores(noApple, scanDate); err != nil {
+		return
+	}
+
+	validChainChan := validateChain(certChains, rootCAFile, scanDate, noApple)
 	nrChains := len(certChains)
 	result.ConsumeResultChannel(*validChainChan, nrChains, output)
 }
 
-func validateChain(certChains []input.CertChain, rootStores []string, rootCAFile string, scanDate time.Time) *chan result.ValidationResult {
-	rootCAs, err := validator.GetRootCAs(rootStores, rootCAFile)
+func validateChain(certChains []input.CertChain, rootCAFile string, scanDate time.Time, noApple bool) *chan result.ValidationResult {
+	err := validator.PoolRootCerts(rootCAFile, noApple)
 	if err != nil {
-		log.Fatal().Msg(err.Error())
+		log.Fatal().Err(err).Msg("Error loading root certificates")
 		return nil
 	}
 	validChainChan := make(chan result.ValidationResult, len(certChains))
 	for _, certChain := range certChains {
-		go validator.ValidateChainPem(certChain, rootCAs, validChainChan, scanDate)
+		go validator.ValidateChainPem(certChain, validChainChan, scanDate)
 	}
 	return &validChainChan
 }

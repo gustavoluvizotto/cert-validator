@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	tlsUrl         = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustTLSSSLPEMCSV?TrustBitsInclude=Websites"
-	sMimeUrl       = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustSMIMEPEMCSV?TrustBitsInclude=Email"
-	tlsRootsFile   = "IncludedRootsDistrustTLSSSLPEM.csv"
-	smimeRootsFile = "IncludedRootsDistrustSMIMEPEM.csv"
+	TlsUrl         = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustTLSSSLPEMCSV?TrustBitsInclude=Websites"
+	SMimeUrl       = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustSMIMEPEMCSV?TrustBitsInclude=Email"
+	TlsRootsFile   = "shared_dir/IncludedRootsDistrustTLSSSLPEM.csv"
+	SMimeRootsFile = "shared_dir/IncludedRootsDistrustSMIMEPEM.csv"
 )
 
 const (
@@ -22,15 +22,15 @@ const (
 	SMIME
 )
 
-func LoadTlsRoots(rootType uint) ([]string, error) {
+func LoadCCADBRoots(rootType uint) ([]string, error) {
 	var url string
 	var filePath string
 	if rootType == TLS {
-		url = tlsUrl
-		filePath = tlsRootsFile
+		url = TlsUrl
+		filePath = TlsRootsFile
 	} else {
-		url = sMimeUrl
-		filePath = smimeRootsFile
+		url = SMimeUrl
+		filePath = SMimeRootsFile
 	}
 	err := Download(url, filePath)
 	if err != nil {
@@ -54,11 +54,6 @@ func LoadTlsRoots(rootType uint) ([]string, error) {
 		}
 		pemCert := strings.ReplaceAll(v[0], "'", "")
 		rootStores = append(rootStores, pemCert)
-	}
-
-	err = os.Remove(filePath)
-	if err != nil {
-		log.Info().Err(err).Msg("Error removing file")
 	}
 
 	return rootStores, nil

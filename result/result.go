@@ -7,43 +7,17 @@ import (
 	"github.com/xitongsys/parquet-go/writer"
 )
 
-type ValidationResult struct {
-	Id          int32  `parquet:"name=id, type=INT32"`
+type RootStoreResult struct {
+	Error       string `parquet:"name=root_store_error, type=BYTE_ARRAY, convertedtype=UTF8"`
 	IsValid     bool   `parquet:"name=is_valid, type=BOOLEAN"`
-	ErrorData   string `parquet:"name=error, type=BYTE_ARRAY, convertedtype=UTF8"`
 	ValidChains string `parquet:"name=valid_chains, type=BYTE_ARRAY, convertedtype=UTF8"`
 }
 
-/*
-// The below attempt does not work, hence the ValidChains is treated as string
 type ValidationResult struct {
-	Id          int32
-	IsValid     bool
-	ErrorData   string
-	ValidChains [][]string
+	Id         int32                      `parquet:"name=id, type=INT32"`
+	Error      string                     `parquet:"name=generic_error, type=BYTE_ARRAY, convertedtype=UTF8"`
+	RootStores map[string]RootStoreResult `parquet:"name=root_stores, type=MAP, keytype=BYTE_ARRAY, keyconvertedtype=UTF8"`
 }
-
-var jsonSchema = `
-	{
-		"Tag": "name=root",
-		"Fields": [
-			{"Tag": "name=id, type=INT32"},
-			{"Tag": "name=is_valid, type=BOOLEAN"},
-			{"Tag": "name=error, type=BYTE_ARRAY, convertedtype=UTF8"},
-
-			{
-				"Tag": "name=valid_chains, type=LIST",
-				"Fields": [
-					{
-						"Tag": "name=element, type=LIST",
-						"Fields": [{"Tag": "name=element, type=BYTE_ARRAY, convertedtype=UTF8"}]
-					}
-				]
-			}
-		]
-	}
-`
-*/
 
 func ConsumeResultChannel(resultChan chan ValidationResult, nrChains int, fileName string) {
 	if resultChan == nil {
