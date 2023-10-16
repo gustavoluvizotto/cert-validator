@@ -119,44 +119,36 @@ func RemoveTemporary() {
 	timestampFile, err := misc.GetFile(AppleRootStoreFile)
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not get Apple file")
-		return
 	}
 	err = os.Remove(timestampFile)
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not remove file.")
-		return
 	}
 
 	timestampFile, err = misc.GetFile(GoogleServicesFile)
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not get Google services file")
-		return
 	}
 	err = os.Remove(timestampFile)
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not remove file.")
-		return
 	}
 
 	timestampFile, err = misc.GetFile(TlsRootsFile)
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not get CCADB TLS file")
-		return
 	}
 	err = os.Remove(timestampFile)
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not remove file.")
-		return
 	}
 
 	timestampFile, err = misc.GetFile(SMimeRootsFile)
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not get CCADB s/MIME file")
-		return
 	}
 	err = os.Remove(timestampFile)
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not remove file.")
-		return
 	}
 }

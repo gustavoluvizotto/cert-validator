@@ -17,21 +17,21 @@ func main() {
 	}
 	minioClient, err := misc.GetMinioClient("upload")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error getting minio client")
+		log.Warn().Err(err).Msg("Error getting minio client")
+		return
 	}
 	fileMap := getFileMap()
 	if err != nil {
-		log.Error().Err(err).Msg("Error getting upload files")
-		return
+		log.Fatal().Err(err).Msg("Error getting upload files")
 	}
 	for localFile, remoteFile := range fileMap {
 		err = misc.UploadS3(minioClient, localFile, remoteFile)
 		if err != nil {
-			log.Error().Err(err).Str("file", localFile).Msg("Error uploading file, try again...")
+			log.Warn().Err(err).Str("file", localFile).Msg("Could not upload file...")
 		} else {
 			err = os.Remove(localFile)
 			if err != nil {
-				log.Warn().Err(err).Msg("Could not remove file.")
+				log.Warn().Err(err).Msg("Could not remove local file.")
 			}
 		}
 	}
