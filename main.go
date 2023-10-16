@@ -91,16 +91,13 @@ func main() {
 
 	if output == "" {
 		log.Fatal().Msg("Output file is required")
-		return
 	}
 	if scanDateArg == "" {
 		log.Fatal().Msg("Scan date is required")
-		return
 	}
 	scanDate, err := time.Parse("20060102", scanDateArg)
 	if err != nil {
 		log.Fatal().Msg("Incorrect format for scan date argument. Use YYYYMMDD")
-		return
 	}
 
 	var certChains []input.CertChain
@@ -127,7 +124,6 @@ func validateChain(certChains []input.CertChain, rootCAFile string, scanDate tim
 	err := rootstores.PoolRootCerts(rootCAFile, noApple)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error loading root certificates")
-		return nil
 	}
 	validChainChan := make(chan result.ValidationResult, len(certChains))
 	for _, certChain := range certChains {

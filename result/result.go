@@ -21,7 +21,7 @@ type ValidationResult struct {
 
 func ConsumeResultChannel(resultChan chan ValidationResult, nrChains int, fileName string) {
 	if resultChan == nil {
-		log.Fatal().Msg("Result channel is nil")
+		log.Error().Msg("Result channel is nil")
 		return
 	}
 
@@ -37,30 +37,30 @@ func storeResult(result []ValidationResult, fileName string) {
 	// write []ValidationResult to parquet file
 	fw, err := local.NewLocalFileWriter(fileName)
 	if err != nil {
-		log.Fatal().Str("fileName", fileName).Str("error", err.Error()).Msg("Can't create file")
+		log.Error().Str("fileName", fileName).Str("error", err.Error()).Msg("Can't create file")
 		return
 	}
 	defer func(fw source.ParquetFile) {
 		err := fw.Close()
 		if err != nil {
-			log.Fatal().Str("error", err.Error()).Msg("Failed to close the output file")
+			log.Warn().Str("error", err.Error()).Msg("Failed to close the output file")
 		}
 	}(fw)
 
 	pw, err := writer.NewParquetWriter(fw, new(ValidationResult), 4)
 	if err != nil {
-		log.Fatal().Str("fileName", fileName).Str("error", err.Error()).Msg("Can't create parquet writer")
+		log.Error().Str("fileName", fileName).Str("error", err.Error()).Msg("Can't create parquet writer")
 		return
 	}
 	for _, stu := range result {
 		if err = pw.Write(stu); err != nil {
-			log.Fatal().Str("fileName", fileName).Str("error", err.Error()).Msg("Write error")
+			log.Warn().Str("fileName", fileName).Str("error", err.Error()).Msg("Write error")
 			return
 		}
 	}
 
 	if err = pw.WriteStop(); err != nil {
-		log.Fatal().Str("fileName", fileName).Str("error", err.Error()).Msg("WriteStop error")
+		log.Warn().Str("fileName", fileName).Str("error", err.Error()).Msg("WriteStop error")
 	}
 
 }

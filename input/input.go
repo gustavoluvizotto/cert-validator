@@ -30,7 +30,7 @@ func LoadCsv(fileName string) []CertChain {
 		var pemCerts []string
 		jsonInput := strings.ReplaceAll(v[1], "'", "\"")
 		if err := json.Unmarshal([]byte(jsonInput), &pemCerts); err != nil {
-			log.Fatal().Str("error", err.Error()).Msg("Unable to parse JSON input")
+			log.Error().Str("error", err.Error()).Msg("Unable to parse JSON input")
 			return nil
 		}
 		id2 := int32(id)
@@ -46,19 +46,19 @@ func LoadCsv(fileName string) []CertChain {
 func LoadParquet(fileName string) []CertChain {
 	fr, err := local.NewLocalFileReader(fileName)
 	if err != nil {
-		log.Fatal().Str("file", fileName).Str("error", err.Error()).Msg("Failed to open file")
+		log.Error().Str("file", fileName).Str("error", err.Error()).Msg("Failed to open file")
 		return nil
 	}
 	defer func(fr source.ParquetFile) {
 		err := fr.Close()
 		if err != nil {
-			log.Fatal().Str("error", err.Error()).Msg("Failed to close the input file")
+			log.Warn().Str("error", err.Error()).Msg("Failed to close the input file")
 		}
 	}(fr)
 
 	pr, err := reader.NewParquetReader(fr, new(CertChain), 4)
 	if err != nil {
-		log.Fatal().Str("error", err.Error()).Msg("Failed to create reader")
+		log.Error().Str("error", err.Error()).Msg("Failed to create reader")
 		return nil
 	}
 	defer pr.ReadStop()
@@ -67,7 +67,7 @@ func LoadParquet(fileName string) []CertChain {
 	num := int(pr.GetNumRows())
 	res, err := pr.ReadByNumber(num)
 	if err != nil {
-		log.Fatal().Str("error", err.Error()).Msg("Can't read")
+		log.Error().Str("error", err.Error()).Msg("Can't read")
 		return nil
 	}
 

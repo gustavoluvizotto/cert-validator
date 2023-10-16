@@ -25,13 +25,13 @@ const (
 func LoadCsv(fileName string) ([][]string, error) {
 	f, err := os.Open(fileName)
 	if err != nil {
-		log.Fatal().Str("fileName", fileName).Str("error", err.Error()).Msg("Unable to read input file")
+		log.Error().Str("fileName", fileName).Str("error", err.Error()).Msg("Unable to read input file")
 		return nil, err
 	}
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			log.Fatal().Str("error", err.Error()).Msg("Failed to close the input file")
+			log.Warn().Str("error", err.Error()).Msg("Failed to close the input file")
 		}
 	}(f)
 
@@ -40,13 +40,13 @@ func LoadCsv(fileName string) ([][]string, error) {
 	// ignore header line
 	_, err = csvReader.Read()
 	if err != nil {
-		log.Fatal().Str("fileName", fileName).Str("error", err.Error()).Msg("Unable to parse CSV file")
+		log.Error().Str("fileName", fileName).Str("error", err.Error()).Msg("Unable to parse CSV file")
 		return nil, err
 	}
 	// read all records
 	records, err := csvReader.ReadAll()
 	if err != nil {
-		log.Fatal().Str("fileName", fileName).Str("error", err.Error()).Msg("Unable to parse CSV file")
+		log.Warn().Str("fileName", fileName).Str("error", err.Error()).Msg("Unable to parse CSV file")
 		return nil, err
 	}
 
@@ -61,7 +61,7 @@ func Download(url string, filePath string) error {
 	defer func(out *os.File) {
 		err = out.Close()
 		if err != nil {
-			log.Fatal().Err(err).Msg("Error closing file")
+			log.Warn().Err(err).Msg("Error closing file")
 		}
 	}(out)
 
@@ -138,6 +138,7 @@ func DownloadS3(minioClient *minio.Client, s3FilePrefix string, date time.Time, 
 		if err != nil {
 			return err
 		}
+		// TODO remove true
 		if timestamp.Before(date) || true {
 			rootStoreS3File = obj.Key
 			break
