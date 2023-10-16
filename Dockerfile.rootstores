@@ -8,7 +8,6 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /upload result/upload/uploadresults3.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o /rootstores-collect rootstores/collect/collect.go
 
-ENTRYPOINT ["/upload"]
-
+ENTRYPOINT ["/rootstores-collect"]

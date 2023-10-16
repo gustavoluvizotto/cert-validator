@@ -10,28 +10,10 @@ import (
 	"github.com/gustavoluvizotto/cert-validator/rootstores"
 	"github.com/rs/zerolog/log"
 	"go.step.sm/crypto/x509util"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 )
-
-const (
-	CCADBTLS             = "CCADBTLS"
-	CCADBSMIME           = "CCADBSMIME"
-	MICROSOFTCODESIGNING = "MICROSOFTCODESIGNING"
-	GOOGLE               = "GOOGLE"
-	APPLE                = "APPLE"
-	CUSTOM               = "CUSTOM"
-)
-
-var RootCertsPool = map[string]*x509.CertPool{
-	CCADBTLS:   nil,
-	CCADBSMIME: nil,
-	GOOGLE:     nil,
-	APPLE:      nil,
-	//MICROSOFTCODESIGNING: nil,
-}
 
 func ValidateChainPem(certChain input.CertChain, resultChan chan result.ValidationResult, scanDate time.Time) {
 	valResult := result.ValidationResult{
@@ -76,7 +58,7 @@ func ValidateChainPem(certChain input.CertChain, resultChan chan result.Validati
 
 	// rfc5280#section-4.2.1.12
 	keyUsage := []x509.ExtKeyUsage{x509.ExtKeyUsageAny} // here we give a lower bound to our results
-	for storeName, rootCAs := range RootCertsPool {
+	for storeName, rootCAs := range rootstores.RootCertsPool {
 		if rootCAs == nil {
 			continue
 		}
@@ -137,94 +119,4 @@ func getCertificateFromPEM(certStr string) (*x509.Certificate, error) {
 		return nil, err
 	}
 	return cert, nil
-}
-
-func PoolRootCerts(rootCAfile string, noApple bool) error {
-	tlsRootStores, err := rootstores.LoadCCADBRoots(rootstores.TLS)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error loading CCADB TLS root certificates")
-		return err
-	}
-	RootCertsPool[CCADBTLS], err = getCertPool(tlsRootStores)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Cannot get pool of CCADB TLS root certificates")
-		return err
-	}
-
-	sMimeRootStores, err := rootstores.LoadCCADBRoots(rootstores.SMIME)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error loading CCADB s/MIME root certificates")
-		return err
-	}
-	RootCertsPool[CCADBSMIME], err = getCertPool(sMimeRootStores)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Cannot get pool of CCADB s/MIME root certificates")
-		return err
-	}
-
-	if false {
-		microsoftRootStores, err := rootstores.LoadMicrosoftCodeSigningRoot()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Warning! Could not load Microsoft root certificates")
-			return err
-		}
-		RootCertsPool[MICROSOFTCODESIGNING], err = getCertPool(microsoftRootStores)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Cannot get pool of Microsoft root certificates")
-			return err
-		}
-	}
-	googleRootCertsPool, err := getCertPoolFromFile(rootstores.GoogleServicesFile)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Cannot get pool of Google services root certificates")
-		return err
-	}
-	RootCertsPool[GOOGLE] = googleRootCertsPool
-
-	if !noApple {
-		applePool, err := getCertPoolFromFile(rootstores.AppleRootStoreFile)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Cannot get pool of custom root certificates")
-			return err
-		}
-		RootCertsPool[APPLE] = applePool
-		err = os.Remove(rootstores.AppleRootStoreFile)
-		if err != nil {
-			log.Warn().Err(err).Msg("Could not remove file.")
-		}
-	}
-
-	customPool, err := getCertPoolFromFile(rootCAfile)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Cannot get pool of custom root certificates")
-		return err
-	}
-	RootCertsPool[CUSTOM] = customPool
-
-	return nil
-}
-
-func getCertPool(rootCAs []string) (*x509.CertPool, error) {
-	certPool := x509.NewCertPool()
-	for _, rootCA := range rootCAs {
-		if !certPool.AppendCertsFromPEM([]byte(rootCA)) {
-			return nil, errors.New("failed to append root CA file certificate")
-		}
-	}
-	return certPool, nil
-}
-
-func getCertPoolFromFile(rootCAfile string) (*x509.CertPool, error) {
-	var certPool *x509.CertPool = nil
-	if rootCAfile != "" {
-		rootFile, err := os.ReadFile(rootCAfile)
-		if err != nil {
-			return nil, err
-		}
-		certPool = x509.NewCertPool()
-		if !certPool.AppendCertsFromPEM(rootFile) {
-			return nil, errors.New("failed to append root CA file certificate to the pool")
-		}
-	}
-	return certPool, nil
 }

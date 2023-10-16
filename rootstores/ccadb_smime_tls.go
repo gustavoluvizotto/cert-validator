@@ -2,42 +2,36 @@ package rootstores
 
 import (
 	"github.com/gustavoluvizotto/cert-validator/misc"
-	"github.com/rs/zerolog/log"
-	"io"
-	"net/http"
-	"os"
 	"strings"
 	"time"
 )
 
 const (
-	TlsUrl         = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustTLSSSLPEMCSV?TrustBitsInclude=Websites"
-	SMimeUrl       = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustSMIMEPEMCSV?TrustBitsInclude=Email"
-	TlsRootsFile   = "shared_dir/IncludedRootsDistrustTLSSSLPEM.csv"
-	SMimeRootsFile = "shared_dir/IncludedRootsDistrustSMIMEPEM.csv"
+	TlsUrl             = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustTLSSSLPEMCSV?TrustBitsInclude=Websites"
+	SMimeUrl           = "https://ccadb.my.salesforce-sites.com/mozilla/IncludedRootsDistrustSMIMEPEMCSV?TrustBitsInclude=Email"
+	TlsRootsFile       = "shared_dir/IncludedRootsDistrustTLSSSLPEM.csv"
+	SMimeRootsFile     = "shared_dir/IncludedRootsDistrustSMIMEPEM.csv"
+	CCADBTlsS3Prefix   = "rootstores/format=raw/store=ccadb-tls"
+	CCADBSMimeS3Prefix = "rootstores/format=raw/store=ccadb-smime"
 )
 
 const (
-	TLS uint = iota
-	SMIME
+	CCADBTLSTYPE uint = iota
+	CCADBSMIMETYPE
 )
 
 func LoadCCADBRoots(rootType uint) ([]string, error) {
-	var url string
 	var filePath string
-	if rootType == TLS {
-		url = TlsUrl
+	if rootType == CCADBTLSTYPE {
 		filePath = TlsRootsFile
 	} else {
-		url = SMimeUrl
 		filePath = SMimeRootsFile
 	}
-	err := Download(url, filePath)
+	timestampFile, err := misc.GetFile(filePath)
 	if err != nil {
 		return nil, err
 	}
-
-	records, err := misc.LoadCsv(filePath)
+	records, err := misc.LoadCsv(timestampFile)
 	if err != nil {
 		return nil, err
 	}
@@ -57,33 +51,4 @@ func LoadCCADBRoots(rootType uint) ([]string, error) {
 	}
 
 	return rootStores, nil
-}
-
-func Download(url string, filePath string) error {
-	out, err := os.Create(filePath)
-	if err != nil {
-		return err
-	}
-	defer func(out *os.File) {
-		err = out.Close()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error closing file")
-		}
-	}(out)
-
-	resp, err := http.Get(url)
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error closing response body")
-		}
-	}(resp.Body)
-
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error copying response body to file")
-		return err
-	}
-
-	return nil
 }

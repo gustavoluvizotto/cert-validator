@@ -6,17 +6,17 @@ import (
 )
 
 const (
-	MicrosofCodeSigningtUrl  = "https://ccadb.my.salesforce-sites.com/microsoft/IncludedRootsPEMCSVForMSFT?MicrosoftEKUs=Code%20Signing"
-	MicrosoftCodeSigningFile = "shared_dir/IncludedRootsPEMForMSFT.csv"
+	MicrosofCodeSigningtUrl      = "https://ccadb.my.salesforce-sites.com/microsoft/IncludedRootsPEMCSVForMSFT?MicrosoftEKUs=Code%20Signing"
+	MicrosoftCodeSigningFile     = "shared_dir/IncludedRootsPEMForMSFT.csv"
+	MicrosoftS3CodeSigningPrefix = "rootstores/format=raw/store=microsoft-code-signing"
 )
 
 func LoadMicrosoftCodeSigningRoot() ([]string, error) {
-	err := Download(MicrosofCodeSigningtUrl, MicrosoftCodeSigningFile)
+	timestampFile, err := misc.GetFile(MicrosoftCodeSigningFile)
 	if err != nil {
 		return nil, err
 	}
-
-	records, err := misc.LoadCsv(MicrosoftCodeSigningFile)
+	records, err := misc.LoadCsv(timestampFile)
 	if err != nil {
 		return nil, err
 	}

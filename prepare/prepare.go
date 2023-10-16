@@ -1,39 +1,33 @@
 package prepare
 
 import (
+	"github.com/gustavoluvizotto/cert-validator/misc"
 	"github.com/gustavoluvizotto/cert-validator/rootstores"
 	"github.com/rs/zerolog/log"
 	"time"
 )
 
-func DownloadAllRootStores(noApple bool, scanDate time.Time) error {
-	err := rootstores.Download(rootstores.TlsUrl, rootstores.TlsRootsFile)
+func RetrieveAllRootStores(noApple bool, scanDate time.Time) error {
+	minioClient, err := misc.GetMinioClient("download")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error loading CCADB TLS root certificates")
+		log.Error().Err(err).Msg("Could not get minio client")
 		return err
 	}
-	err = rootstores.Download(rootstores.SMimeUrl, rootstores.SMimeRootsFile)
+	err = misc.DownloadS3(minioClient, rootstores.GoogleServicesS3RootStorePrefix, scanDate, "shared_dir/")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error loading CCADB sMIME root certificates")
 		return err
 	}
-	if false {
-		// not required
-		err = rootstores.Download(rootstores.MicrosofCodeSigningtUrl, rootstores.MicrosoftCodeSigningFile)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Warning! Could not load Microsoft code signing root certificates")
-			return err
-		}
-	}
-	err = rootstores.Download(rootstores.GoogleServicesURL, rootstores.GoogleServicesFile)
+	err = misc.DownloadS3(minioClient, rootstores.CCADBTlsS3Prefix, scanDate, "shared_dir/")
 	if err != nil {
-		log.Fatal().Err(err).Msg("Warning! Could not download Google services root certificates")
+		return err
+	}
+	err = misc.DownloadS3(minioClient, rootstores.CCADBSMimeS3Prefix, scanDate, "shared_dir/")
+	if err != nil {
 		return err
 	}
 	if !noApple {
-		err = rootstores.DownloadAppleRootStore(scanDate)
+		err = misc.DownloadS3(minioClient, rootstores.AppleS3RootStorePrefix, scanDate, "shared_dir/")
 		if err != nil {
-			log.Fatal().Err(err).Msg("Could not download Apple root certificates")
 			return err
 		}
 	}

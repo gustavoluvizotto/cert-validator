@@ -5,6 +5,7 @@ import (
 	"github.com/gustavoluvizotto/cert-validator/input"
 	"github.com/gustavoluvizotto/cert-validator/prepare"
 	"github.com/gustavoluvizotto/cert-validator/result"
+	"github.com/gustavoluvizotto/cert-validator/rootstores"
 	"github.com/gustavoluvizotto/cert-validator/validator"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -14,23 +15,17 @@ import (
 
 func main() {
 	// parse command line arguments
-	var inputParquet string
-	flag.StringVar(&inputParquet,
-		"input-parquet",
-		"example/input-sample.parquet",
-		"The input file in Parquet format")
-
 	var inputCsv string
 	flag.StringVar(&inputCsv,
 		"input-csv",
 		"",
 		"The input file in CSV format")
 
-	var output string
-	flag.StringVar(&output,
-		"output",
-		"",
-		"The output file in Parquet format (provide extension)")
+	var inputParquet string
+	flag.StringVar(&inputParquet,
+		"input-parquet",
+		"example/input-sample.parquet",
+		"The input file in Parquet format")
 
 	var logFile string
 	flag.StringVar(&logFile,
@@ -38,12 +33,23 @@ func main() {
 		"",
 		"The log file in JSON format")
 
-	// default value is no verbosity
-	var verbosity int
-	flag.IntVar(&verbosity,
-		"v",
-		0,
-		"Verbosity level (1 or 2)")
+	var noApple bool
+	flag.BoolVar(&noApple,
+		"no-apple",
+		false,
+		"Skip Apple root store")
+
+	var output string
+	flag.StringVar(&output,
+		"output",
+		"",
+		"The output file in Parquet format (provide extension)")
+
+	var rM bool
+	flag.BoolVar(&rM,
+		"rm",
+		false,
+		"Remove temporary files")
 
 	var rootCAFile string
 	flag.StringVar(&rootCAFile,
@@ -57,11 +63,12 @@ func main() {
 		"",
 		"Date the certificates were collected. Format: YYYYMMDD")
 
-	var noApple bool
-	flag.BoolVar(&noApple,
-		"no-apple",
-		false,
-		"Skip Apple root store")
+	// default value is no verbosity
+	var verbosity int
+	flag.IntVar(&verbosity,
+		"v",
+		0,
+		"Verbosity level (1 or 2)")
 
 	flag.Parse()
 
@@ -103,17 +110,21 @@ func main() {
 		certChains = input.LoadParquet(inputParquet)
 	}
 
-	if err = prepare.DownloadAllRootStores(noApple, scanDate); err != nil {
+	if err = prepare.RetrieveAllRootStores(noApple, scanDate); err != nil {
 		return
 	}
 
 	validChainChan := validateChain(certChains, rootCAFile, scanDate, noApple)
 	nrChains := len(certChains)
 	result.ConsumeResultChannel(*validChainChan, nrChains, output)
+
+	if rM {
+		rootstores.RemoveTemporary()
+	}
 }
 
 func validateChain(certChains []input.CertChain, rootCAFile string, scanDate time.Time, noApple bool) *chan result.ValidationResult {
-	err := validator.PoolRootCerts(rootCAFile, noApple)
+	err := rootstores.PoolRootCerts(rootCAFile, noApple)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error loading root certificates")
 		return nil

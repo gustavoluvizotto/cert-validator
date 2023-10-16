@@ -42,7 +42,7 @@ go build .
 
 ## Usage
 ```shell
-./cert-validator --input-csv=example/input-sample.csv --root-ca-file=certs.pem --scan-date=20230920  -v 2 --log-file=example/log.json --output=example/output-sample.parquet
+./cert-validator --input-csv=example/input-sample.csv --root-ca-file=certs.pem --scan-date=20230920  -v 2 --log-file=example/log.json --output=example/output-sample.parquet --rm
 ```
 The ```--input-csv``` flag specifies the path to the input csv file.
 Alternatively, the user can specify the input in parquet format using the ```--input-parquet``` flag.
@@ -56,6 +56,8 @@ The ```--log-file``` flag specifies the path to the log file.
 It is optional and defaults to ```stdout```.
 The ```--output``` flag specifies the path to the output parquet file.
 The user can also specify the flag ```--no-apple``` to skip downloading the Apple root certificates from our research group data center (requires special credentials).
+The ```--rm``` flag specifies whether to remove temporary files (downloaded root certificates) after the program finishes.
+It is optional and defaults to ```false```.
 
 ## Container Usage
 If you want to run the program in a container, you can build the container image by running the following command in the toplevel directory:
