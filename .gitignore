@@ -8,3 +8,5 @@ shared_dir/*.json
 shared_dir/*.pem
 shared_dir/*.crt
 credentials
+shared_dir/windows-rootstore.zip
+shared_dir/windows-rootstore/*

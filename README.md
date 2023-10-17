@@ -21,17 +21,17 @@ That's because the program appends other root CAs to the system's root CA certif
 * Go environment (1.21.1 or later).
 * Internet connection (to download the CCADB, Microsoft, Google and Apple root CA certificates). 
 * Podman (in case you want to use the container solution).
-* Apple root certificates are stored in DACS object store and require valid credentials to access them.
-Hence, one can skip by using ```--no-apple``` flag.
-The only reason for this requirement is that the Apple root certificates (pem format) are not available online.
-We obtain them from Apple Mac machine and store them in our research group data center.
 
 The access to the ```credentials``` file must be granted by the owner of this repo.
 The ```credentials``` file must be placed in the same folder of this project and has the following format:
 ```
 [download]
-aws_access_key_id = <>
-aws_secret_access_key = <>
+aws_access_key_id = <request>
+aws_secret_access_key = <request>
+
+[upload]
+aws_access_key_id = empty
+aws_secret_access_key = empty
 ```
 
 ## Build

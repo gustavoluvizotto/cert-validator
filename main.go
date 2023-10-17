@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"github.com/gustavoluvizotto/cert-validator/input"
-	"github.com/gustavoluvizotto/cert-validator/prepare"
 	"github.com/gustavoluvizotto/cert-validator/result"
 	"github.com/gustavoluvizotto/cert-validator/rootstores"
 	"github.com/gustavoluvizotto/cert-validator/validator"
@@ -32,12 +31,6 @@ func main() {
 		"log-file",
 		"",
 		"The log file in JSON format")
-
-	var noApple bool
-	flag.BoolVar(&noApple,
-		"no-apple",
-		false,
-		"Skip Apple root store")
 
 	var output string
 	flag.StringVar(&output,
@@ -107,11 +100,13 @@ func main() {
 		certChains = input.LoadParquet(inputParquet)
 	}
 
-	if err = prepare.RetrieveAllRootStores(noApple, scanDate); err != nil {
-		return
-	}
+	/*
+		if err = prepare.RetrieveAllRootStores(scanDate); err != nil {
+			return
+		}
+	*/
 
-	validChainChan := validateChain(certChains, rootCAFile, scanDate, noApple)
+	validChainChan := validateChain(certChains, rootCAFile, scanDate)
 	nrChains := len(certChains)
 	result.ConsumeResultChannel(*validChainChan, nrChains, output)
 
@@ -120,8 +115,8 @@ func main() {
 	}
 }
 
-func validateChain(certChains []input.CertChain, rootCAFile string, scanDate time.Time, noApple bool) *chan result.ValidationResult {
-	err := rootstores.PoolRootCerts(rootCAFile, noApple)
+func validateChain(certChains []input.CertChain, rootCAFile string, scanDate time.Time) *chan result.ValidationResult {
+	err := rootstores.PoolRootCerts(rootCAFile)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error loading root certificates")
 	}

@@ -9,6 +9,9 @@ const (
 	MicrosofCodeSigningtUrl      = "https://ccadb.my.salesforce-sites.com/microsoft/IncludedRootsPEMCSVForMSFT?MicrosoftEKUs=Code%20Signing"
 	MicrosoftCodeSigningFile     = "shared_dir/IncludedRootsPEMForMSFT.csv"
 	MicrosoftS3CodeSigningPrefix = "rootstores/format=raw/store=microsoft-code-signing"
+	WindowsRootStoreFile         = "shared_dir/windows-rootstore.zip"
+	WindowsRootStoreDir          = "shared_dir/windows-rootstore"
+	WindowsS3Prefix              = "rootstores/format=raw/store=microsoft-windows"
 )
 
 func LoadMicrosoftCodeSigningRoot() ([]string, error) {

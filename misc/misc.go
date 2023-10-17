@@ -1,9 +1,11 @@
 package misc
 
 import (
+	"archive/zip"
 	"context"
 	"encoding/csv"
 	"errors"
+	"fmt"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/rs/zerolog/log"
@@ -13,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -123,6 +126,50 @@ func UploadS3(minioClient *minio.Client, localFile string, remoteFile string) er
 	return nil
 }
 
+func DownloadS3Files(minioClient *minio.Client, s3FilePrefix string, date time.Time, dirName string) error {
+	var rootStoreS3FilesMap = make(map[string][]string)
+	re := regexp.MustCompile(`.*(year=(\d{4})/month=(\d{2})/day=(\d{2})).*`)
+	listOpts := minio.ListObjectsOptions{
+		Prefix:    s3FilePrefix,
+		Recursive: true,
+	}
+	ctx := context.Background()
+	for obj := range minioClient.ListObjects(ctx, bucket, listOpts) {
+		if obj.Err != nil {
+			return obj.Err
+		}
+		matches := re.FindStringSubmatch(obj.Key)
+		if matches == nil || len(matches) < 5 {
+			return errors.New("no matches")
+		}
+		year := matches[2]
+		month := matches[3]
+		day := matches[4]
+		timestamp, err := time.Parse("20060102", fmt.Sprintf("%s%s%s", year, month, day))
+		if err != nil {
+			return err
+		}
+		// TODO remove true
+		if timestamp.Before(date) || true {
+			rootStoreS3FilesMap[matches[1]] = append(rootStoreS3FilesMap[matches[1]], obj.Key)
+		}
+		if len(rootStoreS3FilesMap) > 1 {
+			break
+		}
+	}
+
+	for _, rootStoreS3Files := range rootStoreS3FilesMap {
+		for _, rootStoreS3File := range rootStoreS3Files {
+			err := downloadSingleFileS3(minioClient, ctx, rootStoreS3File, dirName)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func DownloadS3(minioClient *minio.Client, s3FilePrefix string, date time.Time, dirName string) error {
 	var rootStoreS3File string
 	listOpts := minio.ListObjectsOptions{
@@ -145,6 +192,15 @@ func DownloadS3(minioClient *minio.Client, s3FilePrefix string, date time.Time, 
 		}
 	}
 
+	err := downloadSingleFileS3(minioClient, ctx, rootStoreS3File, dirName)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func downloadSingleFileS3(minioClient *minio.Client, ctx context.Context, rootStoreS3File string, dirName string) error {
 	obj, err := minioClient.GetObject(ctx, bucket, rootStoreS3File, minio.GetObjectOptions{Checksum: true})
 	if err != nil {
 		return err
@@ -171,7 +227,6 @@ func DownloadS3(minioClient *minio.Client, s3FilePrefix string, date time.Time, 
 	if _, err = io.Copy(localFile, obj); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -217,4 +272,50 @@ func Contains(needle string, haystack string) []int {
 	offsets := index.Lookup([]byte(needle), -1)
 
 	return offsets
+}
+
+func ExtractZip(zipFilePath string, extension string) error {
+	archive, err := zip.OpenReader(zipFilePath)
+	if err != nil {
+		return err
+	}
+	defer func(archive *zip.ReadCloser) {
+		err := archive.Close()
+		if err != nil {
+			log.Warn().Err(err).Msg("Error closing archive.")
+		}
+	}(archive)
+
+	for _, f := range archive.File {
+		if extension != "" && filepath.Ext(f.Name) != extension {
+			continue
+		}
+		baseDir := strings.TrimSuffix(zipFilePath, filepath.Ext(zipFilePath))
+		filePath := filepath.Join(baseDir, f.Name)
+
+		if err := os.MkdirAll(baseDir, os.ModePerm); err != nil {
+			return err
+		}
+
+		dstFile, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, f.Mode())
+		if err != nil {
+			return err
+		}
+
+		srcFile, err := f.Open()
+		if err != nil {
+			_ = dstFile.Close()
+			return err
+		}
+
+		if _, err := io.Copy(dstFile, srcFile); err != nil {
+			_ = srcFile.Close()
+			_ = dstFile.Close()
+			return err
+		}
+
+		_ = srcFile.Close()
+		_ = dstFile.Close()
+	}
+	return nil
 }

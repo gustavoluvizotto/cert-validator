@@ -1,24 +1,30 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gustavoluvizotto/cert-validator/misc"
 	"github.com/gustavoluvizotto/cert-validator/rootstores"
 	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
 func main() {
-	err := downloadAllRootStores()
+	err := tryExtractWindowsRootStore()
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not extract Windows root store, continuing...")
+	}
+
+	err = downloadAllRootStores()
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error downloading root stores")
 	}
 	minioClient, err := misc.GetMinioClient("upload")
 	if err != nil {
-		log.Warn().Err(err).Msg("Error getting minio client")
-		return
+		log.Fatal().Err(err).Msg("Error getting minio client")
 	}
 	fileMap := getFileMap()
 	if err != nil {
@@ -28,13 +34,28 @@ func main() {
 		err = misc.UploadS3(minioClient, localFile, remoteFile)
 		if err != nil {
 			log.Warn().Err(err).Str("file", localFile).Msg("Could not upload file...")
-		} else {
-			err = os.Remove(localFile)
-			if err != nil {
-				log.Warn().Err(err).Msg("Could not remove local file.")
-			}
 		}
+		//else {
+		//err = os.Remove(localFile)
+		//if err != nil {
+		//	log.Warn().Err(err).Msg("Could not remove local file.")
+		//}
+		//}
 	}
+	//tryCleanWindowsLocalFiles()
+}
+
+func tryExtractWindowsRootStore() error {
+	_, err := os.Stat(rootstores.WindowsRootStoreFile)
+	if err != nil {
+		return err
+	}
+
+	err = misc.ExtractZip(rootstores.WindowsRootStoreFile, ".crt")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func getFileMap() map[string]string {
@@ -51,7 +72,38 @@ func getFileMap() map[string]string {
 		fileMap[rootstores.MicrosoftCodeSigningFile] = fmt.Sprintf("%s/%s/%s_%s", rootstores.MicrosoftS3CodeSigningPrefix, yearMonthDay, timestampStr, filepath.Base(rootstores.MicrosoftCodeSigningFile))
 	}
 
+	err := tryWindowsFileMap(&fileMap, yearMonthDay)
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not get Windows file map, continuing...")
+	}
+
 	return fileMap
+}
+
+func tryWindowsFileMap(fileMap *map[string]string, yearMonthDay string) error {
+	if fileMap == nil {
+		return errors.New("fileMap is nil")
+	}
+
+	_, err := os.Stat(rootstores.WindowsRootStoreDir)
+	if err != nil {
+		return err
+	}
+
+	certs, err := os.ReadDir(rootstores.WindowsRootStoreDir)
+	if err != nil {
+		return err
+	}
+
+	for _, cert := range certs {
+		localFile := filepath.Join(rootstores.WindowsRootStoreDir, cert.Name())
+		(*fileMap)[localFile] = fmt.Sprintf("%s/%s/%s", rootstores.WindowsS3Prefix, yearMonthDay, filepath.Base(cert.Name()))
+	}
+	return nil
+}
+
+func getWindowsExtractedDir() string {
+	return filepath.Join(filepath.Dir(rootstores.WindowsRootStoreFile), strings.TrimSuffix(filepath.Base(rootstores.WindowsRootStoreFile), filepath.Ext(rootstores.WindowsRootStoreFile)))
 }
 
 func downloadAllRootStores() error {
@@ -79,4 +131,15 @@ func downloadAllRootStores() error {
 		return err
 	}
 	return nil
+}
+
+func tryCleanWindowsLocalFiles() {
+	err := os.RemoveAll(rootstores.WindowsRootStoreDir)
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not remove Windows root store directory, continuing...")
+	}
+	err = os.RemoveAll(rootstores.WindowsRootStoreFile)
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not remove Windows root store file, continuing...")
+	}
 }
