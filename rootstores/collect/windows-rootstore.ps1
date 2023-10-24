@@ -12,3 +12,6 @@ podman run --net=host --rm -v shared_dir:/app/shared_dir rootstores-collect --co
 rm -Recurse -Force .\shared_dir\windows-rootstore\
 rm -Force .\shared_dir\windows-rootstore.zip
 
+# retrieve the file via:
+# scp windows:/users/gusta/workspace/cert-validator/shared_dir/windows-rootstore.zip shared_dir/.
+
