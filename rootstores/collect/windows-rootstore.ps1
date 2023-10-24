@@ -7,4 +7,8 @@ certutil.exe -syncWithWU .\shared_dir\windows-rootstore\
 
 Compress-Archive -Path .\shared_dir\windows-rootstore\* -DestinationPath .\shared_dir\windows-rootstore.zip -Force
 
+podman run --net=host --rm -v shared_dir:/app/shared_dir rootstores-collect --collect-windows
+
 rm -Recurse -Force .\shared_dir\windows-rootstore\
+rm -Force .\shared_dir\windows-rootstore.zip
+
