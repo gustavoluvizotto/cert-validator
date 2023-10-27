@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const (
@@ -37,8 +38,8 @@ func IsEmptyRootCertsPool() bool {
 	return true
 }
 
-func PoolRootCerts(rootCAfile string) error {
-	tlsRootStores, err := LoadCCADBRoots(CCADBTLSTYPE)
+func PoolRootCerts(rootCAfile string, scanDate time.Time) error {
+	tlsRootStores, err := LoadCCADBRoots(CCADBTLSTYPE, scanDate)
 	if err != nil {
 		log.Error().Err(err).Msg("Error loading CCADB TLS root certificates")
 	}
@@ -47,7 +48,7 @@ func PoolRootCerts(rootCAfile string) error {
 		log.Error().Err(err).Msg("Cannot get pool of CCADB TLS root certificates")
 	}
 
-	sMimeRootStores, err := LoadCCADBRoots(CCADBSMIMETYPE)
+	sMimeRootStores, err := LoadCCADBRoots(CCADBSMIMETYPE, scanDate)
 	if err != nil {
 		log.Error().Err(err).Msg("Error loading CCADB s/MIME root certificates")
 	}

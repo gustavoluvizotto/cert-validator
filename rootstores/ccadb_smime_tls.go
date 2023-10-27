@@ -20,7 +20,7 @@ const (
 	CCADBSMIMETYPE
 )
 
-func LoadCCADBRoots(rootType uint) ([]string, error) {
+func LoadCCADBRoots(rootType uint, scanDate time.Time) ([]string, error) {
 	var filePath string
 	if rootType == CCADBTLSTYPE {
 		filePath = TlsRootsFile
@@ -41,7 +41,7 @@ func LoadCCADBRoots(rootType uint) ([]string, error) {
 		var distrustDate time.Time
 		if v[1] != "" {
 			distrustDate, err = time.Parse("2006.01.02", v[1])
-			if err == nil && distrustDate.Before(time.Now()) {
+			if err == nil && distrustDate.Before(scanDate) {
 				// skip if distrust date is in the past
 				continue
 			}

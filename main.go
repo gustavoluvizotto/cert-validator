@@ -91,8 +91,10 @@ func main() {
 	}
 	scanDate, err := time.Parse("20060102", scanDateArg)
 	if err != nil {
-		log.Fatal().Msg("Incorrect format for scan date argument. Use YYYYMMDD")
+		log.Fatal().Str("scanDateArg", scanDateArg).Msg("Incorrect format for scan date argument. Use YYYYMMDD")
 	}
+
+	logInputs(inputCsv, inputParquet, logFile, output, rM, rootCAFile, scanDateArg, verbosity)
 
 	var certChains []input.CertChain
 	if inputCsv != "" {
@@ -100,13 +102,11 @@ func main() {
 	} else {
 		certChains = input.LoadParquet(inputParquet)
 	}
-	if len(certChains) == 0 {
+	if certChains == nil || len(certChains) == 0 {
 		log.Fatal().Msg("No certificate chain to validate")
 	}
 
-	if err = prepare.RetrieveAllRootStores(scanDate); err != nil {
-		return
-	}
+	_ = prepare.RetrieveAllRootStores(scanDate)
 
 	validChainChan := validateChain(certChains, rootCAFile, scanDate)
 	nrChains := len(certChains)
@@ -117,8 +117,12 @@ func main() {
 	}
 }
 
+func logInputs(inputCsv string, inputParquet string, logFile string, output string, rM bool, rootCAFile string, scanDate string, verbosity int) {
+	log.Info().Str("input-csv", inputCsv).Str("input-parquet", inputParquet).Str("log-file", logFile).Str("output", output).Bool("rm", rM).Str("root-ca-file", rootCAFile).Str("scan-date", scanDate).Int("verbosity", verbosity).Msg("Inputs")
+}
+
 func validateChain(certChains []input.CertChain, rootCAFile string, scanDate time.Time) *chan result.ValidationResult {
-	err := rootstores.PoolRootCerts(rootCAFile)
+	err := rootstores.PoolRootCerts(rootCAFile, scanDate)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error loading root certificates")
 	}
