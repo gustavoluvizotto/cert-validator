@@ -108,13 +108,17 @@ func main() {
 
 	_ = prepare.RetrieveAllRootStores(scanDate)
 
+	startTime := time.Now()
 	validChainChan := validateChain(certChains, rootCAFile, scanDate)
 	nrChains := len(certChains)
 	result.ConsumeResultChannel(*validChainChan, nrChains, output)
+	endTime := time.Now()
 
 	if rM {
 		rootstores.RemoveTemporary()
 	}
+
+	log.Info().Str("validationTime", endTime.Sub(startTime).String()).Msg("Validation time")
 }
 
 func logInputs(inputCsv string, inputParquet string, logFile string, output string, rM bool, rootCAFile string, scanDate string, verbosity int) {
