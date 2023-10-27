@@ -174,4 +174,9 @@ func RemoveTemporary() {
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not remove file.")
 	}
+
+	err = os.RemoveAll(WindowsRootStoreDir)
+	if err != nil {
+		log.Warn().Err(err).Msg("Could not remove Windows root store directory.")
+	}
 }

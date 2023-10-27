@@ -16,27 +16,27 @@ func RetrieveAllRootStores(scanDate time.Time) error {
 
 	err = misc.DownloadS3(minioClient, rootstores.GoogleServicesS3RootStorePrefix, scanDate, "shared_dir/")
 	if err != nil {
-		return err
+		log.Warn().Err(err).Msg("Error downloading Google Services root store")
 	}
 
 	err = misc.DownloadS3(minioClient, rootstores.CCADBTlsS3Prefix, scanDate, "shared_dir/")
 	if err != nil {
-		return err
+		log.Warn().Err(err).Msg("Error downloading CCADB TLS root store")
 	}
 
 	err = misc.DownloadS3(minioClient, rootstores.CCADBSMimeS3Prefix, scanDate, "shared_dir/")
 	if err != nil {
-		return err
+		log.Warn().Err(err).Msg("Error downloading CCADB s/MIME root store")
 	}
 
 	err = misc.DownloadS3(minioClient, rootstores.AppleS3RootStorePrefix, scanDate, "shared_dir/")
 	if err != nil {
-		return err
+		log.Warn().Err(err).Msg("Error downloading Apple root store")
 	}
 
 	err = misc.DownloadS3Files(minioClient, rootstores.WindowsS3Prefix, scanDate, "shared_dir/windows-rootstore/")
 	if err != nil {
-		return err
+		log.Warn().Err(err).Msg("Error downloading Windows root store")
 	}
 	return nil
 }

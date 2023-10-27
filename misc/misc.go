@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -149,29 +150,40 @@ func DownloadS3Files(minioClient *minio.Client, s3FilePrefix string, date time.T
 		if err != nil {
 			return err
 		}
-		// TODO remove true
-		if timestamp.Before(date) || true {
+
+		if timestamp.Before(date) || timestamp.Equal(date) {
 			rootStoreS3FilesMap[matches[1]] = append(rootStoreS3FilesMap[matches[1]], obj.Key)
-		}
-		if len(rootStoreS3FilesMap) > 1 {
-			break
 		}
 	}
 
-	for _, rootStoreS3Files := range rootStoreS3FilesMap {
-		for _, rootStoreS3File := range rootStoreS3Files {
-			err := downloadSingleFileS3(minioClient, ctx, rootStoreS3File, dirName)
-			if err != nil {
-				return err
-			}
+	if _, err := os.Stat(dirName); err != nil {
+		err := os.MkdirAll(dirName, os.ModePerm)
+		if err != nil {
+			return err
 		}
 	}
+
+	datePaths := make([]string, 0, len(rootStoreS3FilesMap))
+	for k := range rootStoreS3FilesMap {
+		datePaths = append(datePaths, k)
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(datePaths)))
+
+	datePath := datePaths[0]
+	rootStoreS3Files := rootStoreS3FilesMap[datePath]
+	for _, rootStoreS3File := range rootStoreS3Files {
+		err := downloadSingleFileS3(minioClient, ctx, rootStoreS3File, dirName)
+		if err != nil {
+			return err
+		}
+	}
+	log.Info().Str("datePath", datePath).Str("dst", dirName).Msg("Successfully downloaded")
 
 	return nil
 }
 
 func DownloadS3(minioClient *minio.Client, s3FilePrefix string, date time.Time, dirName string) error {
-	var rootStoreS3File string
+	var rootStoreS3Files []string
 	listOpts := minio.ListObjectsOptions{
 		Prefix:    s3FilePrefix,
 		Recursive: true,
@@ -185,17 +197,20 @@ func DownloadS3(minioClient *minio.Client, s3FilePrefix string, date time.Time, 
 		if err != nil {
 			return err
 		}
-		// TODO remove true
-		if timestamp.Before(date) || true {
-			rootStoreS3File = obj.Key
-			break
+
+		if timestamp.Before(date) || timestamp.Equal(date) {
+			rootStoreS3Files = append(rootStoreS3Files, obj.Key)
 		}
 	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(rootStoreS3Files)))
+	rootStoreS3File := rootStoreS3Files[0]
 
 	err := downloadSingleFileS3(minioClient, ctx, rootStoreS3File, dirName)
 	if err != nil {
 		return err
 	}
+	log.Info().Str("file", rootStoreS3File).Msg("Successfully downloaded")
 
 	return nil
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/gustavoluvizotto/cert-validator/input"
+	"github.com/gustavoluvizotto/cert-validator/prepare"
 	"github.com/gustavoluvizotto/cert-validator/result"
 	"github.com/gustavoluvizotto/cert-validator/rootstores"
 	"github.com/gustavoluvizotto/cert-validator/validator"
@@ -100,11 +101,9 @@ func main() {
 		certChains = input.LoadParquet(inputParquet)
 	}
 
-	/*
-		if err = prepare.RetrieveAllRootStores(scanDate); err != nil {
-			return
-		}
-	*/
+	if err = prepare.RetrieveAllRootStores(scanDate); err != nil {
+		return
+	}
 
 	validChainChan := validateChain(certChains, rootCAFile, scanDate)
 	nrChains := len(certChains)
