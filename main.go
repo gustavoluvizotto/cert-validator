@@ -100,6 +100,9 @@ func main() {
 	} else {
 		certChains = input.LoadParquet(inputParquet)
 	}
+	if len(certChains) == 0 {
+		log.Fatal().Msg("No certificate chain to validate")
+	}
 
 	if err = prepare.RetrieveAllRootStores(scanDate); err != nil {
 		return
@@ -119,9 +122,14 @@ func validateChain(certChains []input.CertChain, rootCAFile string, scanDate tim
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error loading root certificates")
 	}
+	if rootstores.IsEmptyRootCertsPool() {
+		log.Fatal().Msg("No root certificates loaded")
+	}
+
 	validChainChan := make(chan result.ValidationResult, len(certChains))
 	for _, certChain := range certChains {
 		go validator.ValidateChainPem(certChain, validChainChan, scanDate)
 	}
+
 	return &validChainChan
 }

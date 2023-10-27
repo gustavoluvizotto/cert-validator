@@ -156,21 +156,23 @@ func DownloadS3Files(minioClient *minio.Client, s3FilePrefix string, date time.T
 		}
 	}
 
+	datePaths := make([]string, 0, len(rootStoreS3FilesMap))
+	for k := range rootStoreS3FilesMap {
+		datePaths = append(datePaths, k)
+	}
+	sort.Sort(sort.Reverse(sort.StringSlice(datePaths)))
+	if len(datePaths) == 0 {
+		return errors.New("no files found under prefix " + s3FilePrefix + " for date " + date.Format("20060102") + " or earlier")
+	}
+	datePath := datePaths[0]
+	rootStoreS3Files := rootStoreS3FilesMap[datePath]
+
 	if _, err := os.Stat(dirName); err != nil {
 		err := os.MkdirAll(dirName, os.ModePerm)
 		if err != nil {
 			return err
 		}
 	}
-
-	datePaths := make([]string, 0, len(rootStoreS3FilesMap))
-	for k := range rootStoreS3FilesMap {
-		datePaths = append(datePaths, k)
-	}
-	sort.Sort(sort.Reverse(sort.StringSlice(datePaths)))
-
-	datePath := datePaths[0]
-	rootStoreS3Files := rootStoreS3FilesMap[datePath]
 	for _, rootStoreS3File := range rootStoreS3Files {
 		err := downloadSingleFileS3(minioClient, ctx, rootStoreS3File, dirName)
 		if err != nil {
@@ -204,6 +206,9 @@ func DownloadS3(minioClient *minio.Client, s3FilePrefix string, date time.Time, 
 	}
 
 	sort.Sort(sort.Reverse(sort.StringSlice(rootStoreS3Files)))
+	if len(rootStoreS3Files) == 0 {
+		return errors.New("no files found under prefix " + s3FilePrefix + " for date " + date.Format("20060102") + " or earlier")
+	}
 	rootStoreS3File := rootStoreS3Files[0]
 
 	err := downloadSingleFileS3(minioClient, ctx, rootStoreS3File, dirName)

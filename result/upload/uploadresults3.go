@@ -48,38 +48,36 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	if outputFile == "" {
-		log.Error().Msg("Output file is required")
-		return
+		log.Fatal().Msg("Output file is required")
 	}
 	if portArg == 0 {
-		log.Error().Msg("Port number is required")
-		return
+		log.Fatal().Msg("Port number is required")
 	}
 	if scanDateArg == "" {
-		log.Error().Msg("Scan date is required")
-		return
+		log.Fatal().Msg("Scan date is required")
 	}
 
 	minioClient, err := misc.GetMinioClient("upload")
 	if err != nil {
-		log.Error().Err(err).Msg("Error getting Minio client")
-		return
+		log.Fatal().Err(err).Msg("Error getting Minio client")
 	}
 	fileMap, err := getFileMap(portArg, scanDateArg, rootCAFile, logFile, outputFile)
 	if err != nil {
-		log.Error().Err(err).Msg("Error getting upload files")
-		return
+		log.Fatal().Err(err).Msg("Error getting upload files")
 	}
 	for localFile, remoteFile := range fileMap {
 		err = misc.UploadS3(minioClient, localFile, remoteFile)
 		if err != nil {
 			log.Error().Err(err).Str("file", localFile).Msg("Error uploading file, try again...")
 		} else {
-			err = os.Remove(localFile)
-			if err != nil {
-				log.Warn().Err(err).Msg("Could not remove file.")
+			err2 := os.Remove(localFile)
+			if err2 != nil {
+				log.Warn().Err(err2).Msg("Could not remove file.")
 			}
 		}
+	}
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error uploading files, please check logs")
 	}
 }
 

@@ -28,6 +28,15 @@ var RootCertsPool = map[string]*x509.CertPool{
 	//MICROSOFTCODESIGNING: nil,
 }
 
+func IsEmptyRootCertsPool() bool {
+	for _, pool := range RootCertsPool {
+		if pool != nil {
+			return false
+		}
+	}
+	return true
+}
+
 func PoolRootCerts(rootCAfile string) error {
 	tlsRootStores, err := LoadCCADBRoots(CCADBTLSTYPE)
 	if err != nil {
@@ -88,6 +97,9 @@ func PoolRootCerts(rootCAfile string) error {
 }
 
 func getCertPool(rootCAs []string) (*x509.CertPool, error) {
+	if len(rootCAs) == 0 {
+		return nil, errors.New("no root CA file provided")
+	}
 	certPool := x509.NewCertPool()
 	for _, rootCA := range rootCAs {
 		if !certPool.AppendCertsFromPEM([]byte(rootCA)) {
