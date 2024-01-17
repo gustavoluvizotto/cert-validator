@@ -34,9 +34,19 @@ func RetrieveAllRootStores(scanDate time.Time) error {
 		log.Warn().Err(err).Msg("Error downloading Apple root store")
 	}
 
-	err = misc.DownloadS3Files(minioClient, rootstores.WindowsS3Prefix, scanDate, "shared_dir/windows-rootstore/")
+	err = misc.DownloadS3Files(minioClient, rootstores.WindowsS3Prefix, scanDate, rootstores.WindowsRootStoreDir)
 	if err != nil {
 		log.Warn().Err(err).Msg("Error downloading Windows root store")
+	}
+
+	err = misc.DownloadS3Files(minioClient, rootstores.JavaS3Prefix, scanDate, rootstores.JavaRootStoreDir)
+	if err != nil {
+		log.Warn().Err(err).Msg("Error downloading Java root store")
+	}
+
+	err = misc.DownloadS3Files(minioClient, rootstores.UbuntuS3Prefix, scanDate, rootstores.UbuntuRootStoreDir)
+	if err != nil {
+		log.Warn().Err(err).Msg("Error downloading Ubuntu root store")
 	}
 	return nil
 }

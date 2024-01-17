@@ -39,6 +39,12 @@ func main() {
 		"",
 		"The output file in Parquet format (provide extension)")
 
+	var prep bool
+	flag.BoolVar(&prep,
+		"prep",
+		false,
+		"Preparation step; download root stores")
+
 	var rM bool
 	flag.BoolVar(&rM,
 		"rm",
@@ -83,15 +89,24 @@ func main() {
 		log.Logger = log.Output(fh)
 	}
 
-	if output == "" {
-		log.Fatal().Msg("Output file is required")
-	}
 	if scanDateArg == "" {
 		log.Fatal().Msg("Scan date is required")
 	}
 	scanDate, err := time.Parse("20060102", scanDateArg)
 	if err != nil {
 		log.Fatal().Str("scanDateArg", scanDateArg).Msg("Incorrect format for scan date argument. Use YYYYMMDD")
+	}
+
+	if prep {
+		err := prepare.RetrieveAllRootStores(scanDate)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Error retrieving root stores")
+		}
+		return
+	}
+
+	if output == "" {
+		log.Fatal().Msg("Output file is required")
 	}
 
 	logInputs(inputCsv, inputParquet, logFile, output, rM, rootCAFile, scanDateArg, verbosity)
@@ -106,8 +121,6 @@ func main() {
 		log.Fatal().Msg("No certificate chain to validate")
 	}
 
-	_ = prepare.RetrieveAllRootStores(scanDate)
-
 	startTime := time.Now()
 	validChainChan := validateChain(certChains, rootCAFile, scanDate)
 	nrChains := len(certChains)
@@ -115,7 +128,7 @@ func main() {
 	endTime := time.Now()
 
 	if rM {
-		rootstores.RemoveTemporary()
+		rootstores.RemoveDownloadedRootCertificates()
 	}
 
 	log.Info().Str("validationTime", endTime.Sub(startTime).String()).Msg("Validation time")

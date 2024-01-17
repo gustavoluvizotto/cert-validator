@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -18,6 +19,8 @@ const (
 	MICROSOFTWINDOWS     = "MICROSOFTWINDOWS"
 	MICROSOFTCODESIGNING = "MICROSOFTCODESIGNING"
 	CUSTOM               = "CUSTOM"
+	JAVA                 = "JAVA"
+	UBUNTU               = "UBUNTU"
 )
 
 var RootCertsPool = map[string]*x509.CertPool{
@@ -26,6 +29,8 @@ var RootCertsPool = map[string]*x509.CertPool{
 	GOOGLESERVICES:   nil,
 	APPLE:            nil,
 	MICROSOFTWINDOWS: nil,
+	JAVA:             nil,
+	UBUNTU:           nil,
 	//MICROSOFTCODESIGNING: nil,
 }
 
@@ -80,11 +85,23 @@ func PoolRootCerts(rootCAfile string, scanDate time.Time) error {
 	}
 	RootCertsPool[APPLE] = applePool
 
-	windowsPool, err := getCertPoolFromDERFiles(WindowsRootStoreDir)
+	windowsPool, err := getCertPoolFromDERFiles(WindowsRootStoreDir, []string{".cab", ".sst"})
 	if err != nil {
 		log.Error().Err(err).Msg("Cannot get pool of Windows root certificates")
 	}
 	RootCertsPool[MICROSOFTWINDOWS] = windowsPool
+
+	javaPool, err := getCertPoolFromPEMFiles(JavaRootStoreDir, []string{})
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot get pool of Java root certificates")
+	}
+	RootCertsPool[JAVA] = javaPool
+
+	ubuntuPool, err := getCertPoolFromPEMFiles(UbuntuRootStoreDir, []string{})
+	if err != nil {
+		log.Error().Err(err).Msg("Cannot get pool of Ubuntu root certificates")
+	}
+	RootCertsPool[UBUNTU] = ubuntuPool
 
 	if rootCAfile != "" {
 		customPool, err := getCertPoolFromPEMFile(rootCAfile)
@@ -129,7 +146,7 @@ func getCertPoolFromPEMFile(rootCAfile string) (*x509.CertPool, error) {
 	return certPool, nil
 }
 
-func getCertPoolFromDERFiles(rootCAFileDir string) (*x509.CertPool, error) {
+func getCertPoolFromPEMFiles(rootCAFileDir string, excludePatterns []string) (*x509.CertPool, error) {
 	certs, err := os.ReadDir(rootCAFileDir)
 	if err != nil {
 		return nil, err
@@ -137,6 +154,44 @@ func getCertPoolFromDERFiles(rootCAFileDir string) (*x509.CertPool, error) {
 
 	certPool := x509.NewCertPool()
 	for _, cert := range certs {
+		found := false
+		for _, exclude := range excludePatterns {
+			if strings.HasSuffix(cert.Name(), exclude) {
+				found = true
+			}
+		}
+		if found {
+			continue
+		}
+		localFile := filepath.Join(rootCAFileDir, cert.Name())
+		rootFile, err := os.ReadFile(localFile)
+		if err != nil {
+			return nil, err
+		}
+		if !certPool.AppendCertsFromPEM(rootFile) {
+			return nil, errors.New("failed to append root CA file certificate to the pool")
+		}
+	}
+	return certPool, nil
+}
+
+func getCertPoolFromDERFiles(rootCAFileDir string, excludePatterns []string) (*x509.CertPool, error) {
+	certs, err := os.ReadDir(rootCAFileDir)
+	if err != nil {
+		return nil, err
+	}
+
+	certPool := x509.NewCertPool()
+	for _, cert := range certs {
+		found := false
+		for _, exclude := range excludePatterns {
+			if strings.HasSuffix(cert.Name(), exclude) {
+				found = true
+			}
+		}
+		if found {
+			continue
+		}
 		localFile := filepath.Join(rootCAFileDir, cert.Name())
 		rootFile, err := os.ReadFile(localFile)
 		if err != nil {
@@ -151,7 +206,7 @@ func getCertPoolFromDERFiles(rootCAFileDir string) (*x509.CertPool, error) {
 	return certPool, nil
 }
 
-func RemoveTemporary() {
+func RemoveDownloadedRootCertificates() {
 	timestampFile, err := misc.GetFile(AppleRootStoreFile)
 	if err != nil {
 		log.Warn().Err(err).Msg("Could not get Apple file")

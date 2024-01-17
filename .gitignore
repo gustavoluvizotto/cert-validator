@@ -12,3 +12,5 @@ shared_dir/windows-rootstore.zip
 shared_dir/windows-rootstore/*
 shared_dir/.ipynb_checkpoints/*
 shared_dir/.virtual_documents/*
+shared_dir/java-rootstore/*
+shared_dir/ubuntu-rootstore/*
