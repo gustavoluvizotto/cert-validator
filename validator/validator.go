@@ -33,27 +33,30 @@ func ValidateChainPem(certChain input.CertChain, resultChan chan result.Validati
 	// Iterate over the certificates in the chain, permuting the leaf certificate and the intermediate certificates,
 	// and verify the chain against the root CAs. Save all valid permutations
 	//var leaf *x509.Certificate
-	var intermediateIdx []int
+	leafFp := x509util.Fingerprint(leaf)
+	//var intermediateIdx []int
 	intermediates := x509.NewCertPool()
 	for i := 1; i < len(certChain.Chain); i++ {
 		// do not add the leaf certificate to the intermediates pool
 		intermediate, err := getCertificateFromPEM(certChain.Chain[i])
 		var intermediateFp string
 		if err == nil {
-			leafFp := x509util.Fingerprint(leaf)
 			intermediateFp = x509util.Fingerprint(intermediate)
 			if leafFp == intermediateFp {
 				continue
 			}
 		}
-
+		if err == nil && !intermediate.IsCA {
+			log.Debug().Int32("chainId", *certChain.Id).Int("index", i).Bool("isCA", intermediate.IsCA).Str("subject.CN", intermediate.Subject.CommonName).Msg("Intermediate certificate did not set the flag")
+			continue
+		}
 		if !intermediates.AppendCertsFromPEM([]byte(certChain.Chain[i])) {
 			valResult.Error = "failed to append intermediate certificate: " + strings.ToUpper(intermediateFp)
 			resultChan <- valResult
 			log.Debug().Int32("id", *certChain.Id).Msg(valResult.Error)
 			return
 		}
-		intermediateIdx = append(intermediateIdx, i)
+		//intermediateIdx = append(intermediateIdx, i)
 	}
 
 	// rfc5280#section-4.2.1.12
@@ -94,9 +97,6 @@ func ValidateChainPem(certChain input.CertChain, resultChan chan result.Validati
 		rootStore.ValidChains = strings.ReplaceAll(fmt.Sprint(validChainsFp), " ", ", ")
 
 		rootStore.IsValid = true
-		if err != nil {
-			rootStore.Error = err.Error()
-		}
 		valResult.RootStores[storeName] = rootStore
 	}
 
