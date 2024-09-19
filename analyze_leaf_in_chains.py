@@ -35,7 +35,7 @@ def get_error_list(root_stores):
     for _, err_dict in root_stores:
         error_list.append(err_dict['root_store_error'])
 
-    # test that any elements are empty
+    # test that we have at least one empty element in the list
     if any(not element for element in error_list):
         return []
     return error_list
