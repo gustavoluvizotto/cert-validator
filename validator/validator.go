@@ -33,9 +33,8 @@ func ValidateChainPem(certChain input.CertChain, resultChan chan result.Validati
 			continue
 		}
 
-		// discard leaf that are marked as CA and have more than one certificate in the chain
-		// if one cert in the chain, then go ahead and try to validate
-		if leaf.IsCA && len(certChain.Chain) > 1 {
+		// discard leaf that are marked as CA
+		if leaf.IsCA {
 			continue
 		}
 
