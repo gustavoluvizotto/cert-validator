@@ -14,9 +14,11 @@ type RootStoreResult struct {
 }
 
 type ValidationResult struct {
-	Id         int32                      `parquet:"name=id, type=INT32"`
-	Error      string                     `parquet:"name=generic_error, type=BYTE_ARRAY, convertedtype=UTF8"`
-	RootStores map[string]RootStoreResult `parquet:"name=root_stores, type=MAP, keytype=BYTE_ARRAY, keyconvertedtype=UTF8"`
+	Id                int32                      `parquet:"name=id, type=INT32"`
+	Error             string                     `parquet:"name=generic_error, type=BYTE_ARRAY, convertedtype=UTF8"`
+	RootStores        map[string]RootStoreResult `parquet:"name=root_stores, type=MAP, keytype=BYTE_ARRAY, keyconvertedtype=UTF8"`
+	LeafCertIndex     int32                      `parquet:"name=leaf_cert_index, type=INT32"`
+	AllValidLeafIndex []int32                    `parquet:"name=all_valid_leaves_index, type=LIST, valuetype=INT32"`
 }
 
 func ConsumeResultChannel(resultChan chan ValidationResult, nrChains int, fileName string) {
