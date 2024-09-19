@@ -54,7 +54,7 @@ func ValidateChainPem(certChain input.CertChain, resultChan chan result.Validati
 			}
 			if err == nil && !intermediate.IsCA {
 				log.Debug().Int("leafIndex", leafIndex).Int32("chainId", *certChain.Id).Int("index", i).Bool("isCA", intermediate.IsCA).Str("subject.CN", intermediate.Subject.CommonName).Msg("Intermediate certificate did not set the flag")
-				// all the rest of the chain will be added to the pool, even if it is not flagged as CA
+				continue
 			}
 			if !intermediates.AppendCertsFromPEM([]byte(certChain.Chain[i])) {
 				valResult.Error = "failed to append intermediate certificate: " + strings.ToUpper(intermediateFp)

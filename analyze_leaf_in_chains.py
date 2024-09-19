@@ -12,7 +12,7 @@ SHORT6 = "Other errors"
 SHORT7 = "Self-signed"
 SHORT8 = "Valid chain"
 SHORT9 = "Invalid signature"  # under SHORT1
-
+SHORT10 = "No valid leaf certificate"
 
 short_error_name_map = {
     'x509: certificate signed by unknown authority': SHORT1,
@@ -44,7 +44,7 @@ def get_error_list(root_stores):
 def error_str2(root_stores):
     error_list = get_error_list(root_stores)
     if error_list is None:
-        return None
+        return SHORT10
     if error_list == []:
         return SHORT8
 
@@ -215,8 +215,8 @@ def all_valid_leaves():
 
 def main():
     #analysis_leaves_chosen()
-    #analysis_errors()
-    all_valid_leaves()
+    analysis_errors()
+    #all_valid_leaves()
     #analysis_leaves_in_chains()
 
 
