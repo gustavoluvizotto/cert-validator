@@ -166,6 +166,14 @@ def analysis_errors():
     print("old method to assign leaf certificate index\n",
         aggr_pdf
     )
+    # port=636, ts=2024-07-09
+    #old method to assign leaf certificate index
+    #                                 error  count  percentage
+    #1         Signed by unknown authority  15062       42.41
+    #4                         Valid chain  13368       37.64
+    #0               Expired/Not yet valid   7076       19.92
+    #3        Unhandled critical extension      8        0.02
+    #2  Too many intermediate certificates      1        0.00
 
     new_pdf = pd.read_parquet("shared_dir/new20240709_636_cert-validator-output.parquet")
     new_pdf = new_pdf[new_pdf["id"].isin(ldap_ids)]
@@ -175,8 +183,15 @@ def analysis_errors():
     print("new method to assign leaf certificate index\n",
         aggr_pdf
     )
-
-    #print(new_pdf[new_pdf["error"] != SHORT8]["id"].to_list()[:3])  # [1460, 4935, 27129]
+    # port=636, ts=2024-07-09
+    #new method to assign leaf certificate index
+    #                                 error  count  percentage
+    #2         Signed by unknown authority  13987       39.38
+    #5                         Valid chain  11454       32.25
+    #0               Expired/Not yet valid   5378       15.14
+    #1           No valid leaf certificate   4687       13.20
+    #4        Unhandled critical extension      8        0.02
+    #3  Too many intermediate certificates      1        0.00
 
 
 def all_valid_leaves():

@@ -18,8 +18,9 @@ import (
 func ValidateChainPem(certChain input.CertChain, resultChan chan result.ValidationResult, scanDate time.Time) {
 	valResult := result.ValidationResult{
 		Id:                *certChain.Id,
-		RootStores:        make(map[string]result.RootStoreResult),
+		RootStores:        nil,
 		AllValidLeafIndex: make([]int32, 0),
+		LeafCertIndex:     -1,
 	}
 
 	// try all leaf certs to find whether at least one is valid
@@ -113,7 +114,7 @@ func ValidateChainPem(certChain input.CertChain, resultChan chan result.Validati
 			valResult.AllValidLeafIndex = append(valResult.AllValidLeafIndex, int32(leafIndex))
 		}
 		// if no valid chain is found, at least the first leaf is stored
-		if len(valResult.RootStores) == 0 {
+		if valResult.RootStores == nil {
 			valResult.RootStores = leafRootRes
 			valResult.LeafCertIndex = int32(leafIndex)
 		}
